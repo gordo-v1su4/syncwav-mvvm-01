@@ -2,9 +2,9 @@
   import { uiStore, toggleLeftPanel, toggleRightPanel } from '$lib/stores/uiStore';
   import { audioEngineStore } from '$lib/stores/audioEngineStore';
   import { projectStore } from '$lib/stores/projectStore';
-  import { playAudio, pauseAudio, stopAudio, seekAudio, setAudioVolume, toggleAudioLoop } from '$lib/utils/audioService';
   import WaveformDisplay from './WaveformDisplay.svelte';
-  // import { ChevronLeft, ChevronRight, Settings, Library, Play, Pause, Square, SkipBack, SkipForward, Volume2, Repeat } from 'svelte-lucide';
+  import PlaybackControls from './PlaybackControls.svelte';
+  import AudioAnalysisControls from './AudioAnalysisControls.svelte';
   import { formatTime } from '$lib/utils/audioUtils';
 
   $: panelStates = $uiStore.panelStates;
@@ -13,60 +13,12 @@
 
   // Handle seek from waveform
   function handleWaveformSeek(event: CustomEvent<{ time: number }>) {
-    seekAudio(event.detail.time);
-  }
-
-  // Playback controls
-async function handlePlay() {
-   try {
-     if (audioState.isPlaying) {
-       pauseAudio();
-     } else {
-       await playAudio();
-     }
-   } catch (error) {
-     console.error('Playback error:', error);
-    // TODO: Show user-friendly error notification
-    // Example: showNotification('Playback failed. Please try again.', 'error');
-   }
- }
-
-  function handleStop() {
-    stopAudio();
-  }
-
-  function handleSkipBack() {
-    const newTime = Math.max(0, audioState.currentTime - 10);
-    seekAudio(newTime);
-  }
-
-  function handleSkipForward() {
-    const newTime = Math.min(audioState.totalDuration, audioState.currentTime + 10);
-    seekAudio(newTime);
-  }
-
-  function handleVolumeChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const volume = parseFloat(target.value);
-    setAudioVolume(volume);
-  }
-
-  function handleTempoChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const tempo = parseInt(target.value);
-    // TODO: Implement tempo change when we add real-time audio manipulation
-    console.log('Tempo change:', tempo);
-  }
-
-  function handlePitchChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const pitch = parseInt(target.value);
-    // TODO: Implement pitch change when we add real-time audio manipulation
-    console.log('Pitch change:', pitch);
-  }
-
-  function handleLoop() {
-    toggleAudioLoop();
+    // The PlaybackControls component handles the actual seeking
+    // This just forwards the event
+    audioEngineStore.update(state => ({
+      ...state,
+      currentTime: event.detail.time
+    }));
   }
 </script>
 
@@ -193,131 +145,14 @@ async function handlePlay() {
     </div>
     <div class="panel-content">
       <!-- Audio Analysis Tools -->
-      <div class="control-section">
-        <h5>Audio Analysis</h5>
-        <div class="analysis-tools">
-          <button class="analysis-btn" disabled={!audioState.audioBuffer}>Detect Master Beats</button>
-          <button class="analysis-btn" disabled={!audioState.audioBuffer}>Isolate Stems</button>
-          <button class="analysis-btn" disabled={!audioState.audioBuffer}>Detect Transients</button>
-          <button class="analysis-btn toggle" class:active={false}>Manual Marker Mode</button>
-        </div>
-      </div>
-
-      <!-- Stem Controls Section -->
-      <div class="control-section">
-        <h5>Stem Controls</h5>
-        <div class="stem-controls">
-          <div class="stem-item">
-            <span>Vocals</span>
-            <button class="stem-solo" disabled>Solo</button>
-            <button class="stem-detect" disabled>Detect</button>
-          </div>
-          <div class="stem-item">
-            <span>Drums</span>
-            <button class="stem-solo" disabled>Solo</button>
-            <button class="stem-detect" disabled>Detect</button>
-          </div>
-        </div>
-        <p class="stem-note">Stem isolation not yet implemented</p>
-      </div>
-
-      <!-- Synchronization Rules Section -->
-      <div class="control-section">
-        <h5>Sync Rules</h5>
-        <div class="sync-controls">
-          <label>
-            Driving Audio Feature:
-            <select class="sync-select" disabled>
-              <option>Master Beats</option>
-              <option>Vocal Transients</option>
-              <option>Drum Transients</option>
-            </select>
-          </label>
-          <label>
-            Switch every:
-            <input type="number" value="4" min="1" class="sync-input" disabled> markers
-          </label>
-        </div>
-        <p class="sync-note">Sync rules will be available after audio analysis</p>
-      </div>
+      <!-- Audio Analysis Controls -->
+      <AudioAnalysisControls />
     </div>
   </div>
 
   <!-- Master Playback Controls -->
-  <div class="playback-controls" style="grid-area: playback;">
-    <div class="playback-main">
-      <button class="playback-btn secondary" on:click={handleSkipBack} disabled={!audioState.audioBuffer}>
-        <!-- <SkipBack size={"18"} /> -->
-      </button>
-      <button class="playback-btn primary" on:click={handlePlay} disabled={!audioState.audioBuffer}>
-        {#if audioState.isPlaying}
-          <!-- <Pause size={"20"} /> -->
-        {:else}
-          <!-- <Play size={"20"} /> -->
-        {/if}
-      </button>
-      <button class="playback-btn secondary" on:click={handleStop} disabled={!audioState.audioBuffer}>
-        <!-- <Square size={"16"} /> -->
-      </button>
-      <button class="playback-btn secondary" on:click={handleSkipForward} disabled={!audioState.audioBuffer}>
-        <!-- <SkipForward size={"18"} /> -->
-      </button>
-      <button 
-        class="playback-btn secondary loop-btn" 
-        class:active={audioState.isLooping}
-        on:click={handleLoop} 
-        disabled={!audioState.audioBuffer}
-        title="Toggle loop"
-      >
-        <!-- <Repeat size={"16"} /> -->
-      </button>
-    </div>
-    <div class="playback-info">
-      <span class="time-display">
-        {formatTime(audioState.currentTime)} / {formatTime(audioState.totalDuration)}
-      </span>
-      <div class="playback-controls-extended">
-        <div class="volume-control">
-          <!-- <Volume2 size={"16"} /> -->
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.01"
-            value={audioState.volume}
-            class="volume-slider"
-            on:input={handleVolumeChange}
-            disabled={!audioState.audioBuffer}
-          >
-        </div>
-        <div class="tempo-controls">
-          <label>BPM: 
-            <input 
-              type="range" 
-              min="60" 
-              max="180" 
-              value={audioState.tempo} 
-              class="tempo-slider"
-              on:input={handleTempoChange}
-              disabled
-            >
-            <span class="tempo-value">{audioState.tempo}</span>
-          </label>
-          <label>Pitch: 
-            <input 
-              type="range" 
-              min="-12" 
-              max="12" 
-              value={audioState.pitch} 
-              class="pitch-slider"
-              on:input={handlePitchChange}
-              disabled
-            >
-            <span class="pitch-value">{audioState.pitch > 0 ? '+' : ''}{audioState.pitch}</span>
-          </label>
-        </div>
-      </div>
-    </div>
+  <div class="playback-controls-container" style="grid-area: playback;">
+    <PlaybackControls />
   </div>
 </div>
 

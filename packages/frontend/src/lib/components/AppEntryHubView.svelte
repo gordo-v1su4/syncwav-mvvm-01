@@ -2,6 +2,9 @@
   import { setAppMode } from '$lib/stores/uiStore';
   import { resetProject } from '$lib/stores/projectStore';
 
+  // Version information
+  const version = "0.1.0";
+
   function createNewProject() {
     // Reset project store or initialize new project state
     resetProject();
@@ -156,5 +159,4 @@
     color: var(--text-dimmed);
     font-size: 0.8rem;
   }
-</style>  }
 </style>

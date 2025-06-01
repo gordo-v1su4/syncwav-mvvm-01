@@ -26,24 +26,17 @@ export function generateWaveformPeaks(
   samplesPerPixel: number = 512
 ): AudioPeakData[] {
   // Merge all channels by taking the max / min per sample index
-const channelCount = audioBuffer.numberOfChannels;
-const channelData = new Float32Array(audioBuffer.length);
-for (let ch = 0; ch < channelCount; ch++) {
-// Merge all channels by taking the max / min per sample index
-const channelCount = audioBuffer.numberOfChannels;
-const channelData = new Float32Array(audioBuffer.length);
-for (let ch = 0; ch < channelCount; ch++) {
-  const data = audioBuffer.getChannelData(ch);
-  for (let i = 0; i < data.length; i++) {
-    // Keep the extreme values across channels
-    channelData[i] = Math.max(channelData[i] ?? -1, data[i]);
+  const channelCount = audioBuffer.numberOfChannels;
+  const channelData = new Float32Array(audioBuffer.length);
+  
+  // Merge all channels by taking the max/min per sample index
+  for (let ch = 0; ch < channelCount; ch++) {
+    const data = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) {
+      // Keep the extreme values across channels
+      channelData[i] = Math.max(channelData[i] ?? -1, data[i]);
+    }
   }
-}
-  for (let i = 0; i < data.length; i++) {
-    // Keep the extreme values across channels
-    channelData[i] = Math.max(channelData[i] ?? -1, data[i]);
-  }
-}
   const peaks: AudioPeakData[] = [];
   const blockSize = samplesPerPixel;
   
@@ -216,8 +209,12 @@ export function calculateSamplesPerPixel(
   canvasWidth: number, 
   zoom: number = 1.0
 ): number {
-  const totalSamples = audioBuffer.length;
-if (canvasWidth <= 0) return samplesPerPixel; // sensible fallback
-const visibleSamples = totalSamples / zoom;
-return Math.ceil(visibleSamples / canvasWidth);
+    const totalSamples = audioBuffer.length;
+    // Default fallback value
+    const defaultSamplesPerPixel = 512;
+    
+    if (canvasWidth <= 0) return defaultSamplesPerPixel;
+    
+    const visibleSamples = totalSamples / zoom;
+    return Math.ceil(visibleSamples / canvasWidth);
 } 

@@ -101,14 +101,14 @@ export class AudioService {
     this.sourceNode.onended = () => {
       this.handlePlaybackEnd();
     };
-// Capture offset *before* manipulating the store
-const startOffset = get(audioEngineStore).currentTime;
-
-// Stop only the active source; keep currentTime intact
-if (this.sourceNode) {
-  this.sourceNode.stop();
-  this.sourceNode = null;
-}
+    // Capture offset *before* manipulating the store
+    const startOffset = get(audioEngineStore).currentTime;
+    
+    // Stop only the active source; keep currentTime intact
+    if (this.sourceNode) {
+      this.sourceNode.stop();
+      this.sourceNode = null;
+    }
     this.sourceNode.start(0, startOffset);
     this.startTime = this.audioContext.currentTime - startOffset;
     
@@ -131,15 +131,15 @@ if (this.sourceNode) {
       this.sourceNode = null;
     }
 
-const exactTime = this.getCurrentTime();
-this.pauseTime = exactTime;
-this.stopTimeTracking();
-
-audioEngineStore.update(state => ({
-  ...state,
-  isPlaying: false,
-  currentTime: exactTime
-}));
+    const exactTime = this.getCurrentTime();
+    this.pauseTime = exactTime;
+    this.stopTimeTracking();
+    
+    audioEngineStore.update(state => ({
+      ...state,
+      isPlaying: false,
+      currentTime: exactTime
+    }));
   }
 
   /**

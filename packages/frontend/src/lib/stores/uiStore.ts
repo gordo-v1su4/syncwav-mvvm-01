@@ -7,14 +7,13 @@ const initialUIState: UIState = {
   panelStates: {
     leftPanelCollapsed: false,
     rightPanelCollapsed: false
-projectState: {
-   hasAudio: false,
-   hasVideo: false,
-  videoFiles: [],
-  audioFile: null as File | null
- },
-  audioFile: null as File | null
- },
+  },
+  projectState: {
+    hasAudio: false,
+    hasVideo: false,
+    videoFileIds: [],
+    audioFileId: null as string | null
+  },
   loadingStates: {
     audioAnalysis: false,
     stemIsolation: false,
@@ -64,7 +63,7 @@ export const setAudioFile = (file: File) => {
     ...state,
     projectState: {
       ...state.projectState,
-      audioFile: file,
+      audioFileId: file.name, // Using file name as ID for now
       hasAudio: true
     }
   }));
@@ -75,7 +74,7 @@ export const addVideoFile = (file: File) => {
     ...state,
     projectState: {
       ...state.projectState,
-      videoFiles: [...state.projectState.videoFiles, file],
+      videoFileIds: [...state.projectState.videoFileIds, file.name], // Using file name as ID for now
       hasVideo: true
     }
   }));

@@ -14,9 +14,8 @@
   let audioUploadError = '';
   let videoUploadError = '';
 
- // Backend URL should come from environment configuration
- import { PUBLIC_BACKEND_URL } from '$env/static/public';
- const BACKEND_URL = PUBLIC_BACKEND_URL || 'http://localhost:3002';
+ // Backend URL
+ const BACKEND_URL = 'http://localhost:3002'; // Hardcoded for development
 
   $: canProceedToEdit = $projectStore.masterAudioInfo && $projectStore.videoClips.length > 0;
 
