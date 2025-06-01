@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { Upload, Music, Video } from 'svelte-lucide';
-  import { uiStore, setAudioFile, addVideoFile } from '$lib/stores/uiStore';
+  import { Upload, Music, Video, CircleCheck, CircleAlert } from 'svelte-lucide';
+  import { uiStore, setAudioFile, addVideoFile, setAppMode } from '$lib/stores/uiStore';
+  import { audioEngineStore } from '$lib/stores/audioEngineStore';
+  import { projectStore, addVideoClip, setAudioAsset, updateProjectSettings } from '$lib/stores/projectStore';
+  import { loadAudioFromFile } from '$lib/utils/audioService';
+  import { isValidAudioFile, isValidVideoFile } from '$lib/utils/audioUtils';
 
   let audioFileInput: HTMLInputElement;
   let videoFileInput: HTMLInputElement;
@@ -8,8 +12,12 @@
   let videoProgress = 0;
   let isUploadingAudio = false;
   let isUploadingVideo = false;
+  let uploadError = '';
+  let audioAnalysisComplete = false;
 
   $: projectState = $uiStore.projectState;
+  $: audioEngineState = $audioEngineStore;
+  $: canProceedToEdit = projectState.hasAudio && projectState.hasVideo;
 
   function triggerAudioUpload() {
     audioFileInput.click();
@@ -19,11 +27,62 @@
     videoFileInput.click();
   }
 
-  function handleAudioUpload(event: Event) {
+  async function handleAudioUpload(event: Event) {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
     if (file) {
-      simulateUpload(file, 'audio');
+      await processAudioFile(file);
+    }
+  }
+
+  async function processAudioFile(file: File) {
+    // Validate file type
+    if (!isValidAudioFile(file)) {
+      uploadError = 'Invalid audio file format. Please upload MP3, WAV, or other supported audio files.';
+      setTimeout(() => uploadError = '', 5000);
+      return;
+    }
+
+    uploadError = '';
+    isUploadingAudio = true;
+    audioProgress = 0;
+
+    try {
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        audioProgress += 20;
+        if (audioProgress >= 80) {
+          clearInterval(progressInterval);
+        }
+      }, 200);
+
+      // Load audio file into audio service
+      await loadAudioFromFile(file);
+      
+      // Complete progress
+      audioProgress = 100;
+      
+      // Update UI store
+      setAudioFile(file);
+      
+      // Update project store
+      setAudioAsset(file);
+      updateProjectSettings({
+        audioFile: file,
+        audioFileName: file.name,
+        duration: audioEngineState.totalDuration
+      });
+
+      audioAnalysisComplete = true;
+      isUploadingAudio = false;
+      audioProgress = 0;
+
+    } catch (error) {
+      console.error('Error loading audio file:', error);
+      uploadError = 'Failed to load audio file. Please try again.';
+      isUploadingAudio = false;
+      audioProgress = 0;
+      setTimeout(() => uploadError = '', 5000);
     }
   }
 
@@ -32,39 +91,100 @@
     const files = target.files;
     if (files) {
       Array.from(files).forEach(file => {
-        simulateUpload(file, 'video');
+        processVideoFile(file);
       });
     }
   }
 
-  function simulateUpload(file: File, type: 'audio' | 'video') {
-    if (type === 'audio') {
-      isUploadingAudio = true;
-      audioProgress = 0;
-    } else {
-      isUploadingVideo = true;
-      videoProgress = 0;
+  async function processVideoFile(file: File) {
+    // Validate file type
+    if (!isValidVideoFile(file)) {
+      uploadError = 'Invalid video file format. Please upload MP4, WebM, or other supported video files.';
+      setTimeout(() => uploadError = '', 5000);
+      return;
     }
 
-    const interval = setInterval(() => {
-      if (type === 'audio') {
-        audioProgress += 10;
-        if (audioProgress >= 100) {
-          clearInterval(interval);
-          setAudioFile(file);
-          isUploadingAudio = false;
-          audioProgress = 0;
+    uploadError = '';
+    isUploadingVideo = true;
+    videoProgress = 0;
+
+    try {
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        videoProgress += 15;
+        if (videoProgress >= 90) {
+          clearInterval(progressInterval);
         }
-      } else {
-        videoProgress += 10;
-        if (videoProgress >= 100) {
-          clearInterval(interval);
-          addVideoFile(file);
-          isUploadingVideo = false;
-          videoProgress = 0;
+      }, 150);
+
+      // Generate video thumbnail and get duration
+      const { thumbnail, duration } = await generateVideoThumbnail(file);
+      
+      videoProgress = 100;
+
+      // Update UI store
+      addVideoFile(file);
+
+      // Add to project store with metadata
+      const videoClip = addVideoClip(file);
+      
+      // Update clip with thumbnail and duration
+      import('$lib/stores/projectStore').then(({ updateVideoClip }) => {
+        updateVideoClip(videoClip.id, {
+          thumbnail,
+          duration,
+          clipEnd: duration
+        });
+      });
+
+      isUploadingVideo = false;
+      videoProgress = 0;
+
+    } catch (error) {
+      console.error('Error processing video file:', error);
+      uploadError = 'Failed to process video file. Please try again.';
+      isUploadingVideo = false;
+      videoProgress = 0;
+      setTimeout(() => uploadError = '', 5000);
+    }
+  }
+
+  async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; duration: number }> {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      video.onloadedmetadata = () => {
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 180;
+        
+        // Seek to 1 second or 10% of duration for thumbnail
+        const thumbnailTime = Math.min(1, video.duration * 0.1);
+        video.currentTime = thumbnailTime;
+      };
+
+      video.onseeked = () => {
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+          resolve({ thumbnail, duration: video.duration });
+        } else {
+          reject(new Error('Failed to create canvas context'));
         }
-      }
-    }, 100);
+        
+        // Clean up
+        URL.revokeObjectURL(video.src);
+      };
+
+      video.onerror = () => {
+        reject(new Error('Failed to load video'));
+        URL.revokeObjectURL(video.src);
+      };
+
+      video.src = URL.createObjectURL(file);
+      video.load();
+    });
   }
 
   function handleDrop(event: DragEvent, type: 'audio' | 'video') {
@@ -72,10 +192,10 @@
     const files = event.dataTransfer?.files;
     if (files) {
       if (type === 'audio' && files[0]) {
-        simulateUpload(files[0], 'audio');
+        processAudioFile(files[0]);
       } else if (type === 'video') {
         Array.from(files).forEach(file => {
-          simulateUpload(file, 'video');
+          processVideoFile(file);
         });
       }
     }
@@ -83,6 +203,12 @@
 
   function handleDragOver(event: DragEvent) {
     event.preventDefault();
+  }
+
+  function proceedToEditMode() {
+    if (canProceedToEdit) {
+      setAppMode('edit');
+    }
   }
 </script>
 
@@ -92,12 +218,20 @@
     <p>Upload your master audio track and video clips to get started</p>
   </div>
 
+  {#if uploadError}
+    <div class="error-message">
+      <CircleAlert size={20} />
+      <span>{uploadError}</span>
+    </div>
+  {/if}
+
   <div class="upload-section">
     <div class="upload-area-container">
       <!-- Audio Upload Area -->
       <div
         class="upload-area audio-upload"
         class:has-file={projectState.hasAudio}
+        class:complete={audioAnalysisComplete}
         on:drop={(e) => handleDrop(e, 'audio')}
         on:dragover={handleDragOver}
         role="button"
@@ -106,13 +240,20 @@
         on:keydown={(e) => e.key === 'Enter' && triggerAudioUpload()}
       >
         <div class="upload-content">
-          <Music size={48} class="upload-icon" />
+          {#if audioAnalysisComplete}
+            <CircleCheck size={48} class="upload-icon success" />
+          {:else}
+            <Music size={48} class="upload-icon" />
+          {/if}
           <h3>Upload Master Audio</h3>
           <p>Drop your audio file here or click to browse</p>
-          <span class="file-types">Supports MP3, WAV, M4A</span>
+          <span class="file-types">Supports MP3, WAV, FLAC, OGG</span>
           {#if projectState.audioFile}
             <div class="file-info">
               <span class="file-name">{projectState.audioFile.name}</span>
+              {#if audioEngineState.totalDuration > 0}
+                <span class="file-duration">Duration: {Math.floor(audioEngineState.totalDuration / 60)}:{(audioEngineState.totalDuration % 60).toFixed(0).padStart(2, '0')}</span>
+              {/if}
             </div>
           {/if}
         </div>
@@ -138,7 +279,7 @@
           <Video size={48} class="upload-icon" />
           <h3>Upload Video Clips</h3>
           <p>Drop your video files here or click to browse</p>
-          <span class="file-types">Supports MP4, MOV, WebM</span>
+          <span class="file-types">Supports MP4, WebM, MOV</span>
           {#if projectState.videoFiles.length > 0}
             <div class="file-info">
               <span class="file-count">{projectState.videoFiles.length} video{projectState.videoFiles.length > 1 ? 's' : ''} uploaded</span>
@@ -164,6 +305,9 @@
             <div class="asset-item audio">
               <Music size={20} />
               <span>{projectState.audioFile.name}</span>
+              {#if audioAnalysisComplete}
+                <CircleCheck size={16} class="success-icon" />
+              {/if}
             </div>
           {/if}
           {#each projectState.videoFiles as videoFile}
@@ -180,6 +324,45 @@
         </div>
       {/if}
     </div>
+
+    <!-- Proceed to Edit Button -->
+    {#if canProceedToEdit}
+      <div class="proceed-section">
+        <button 
+          class="proceed-button"
+          class:ready={audioAnalysisComplete}
+          on:click={proceedToEditMode}
+        >
+          <span>Start Editing</span>
+          <CircleCheck size={20} />
+        </button>
+        <p class="proceed-note">
+          All required media has been uploaded. Ready to start editing!
+        </p>
+      </div>
+    {:else}
+      <div class="requirements-section">
+        <h4>Requirements to Continue:</h4>
+        <ul class="requirements-list">
+          <li class:complete={projectState.hasAudio}>
+            {#if projectState.hasAudio}
+              <CircleCheck size={16} />
+            {:else}
+              <div class="requirement-dot"></div>
+            {/if}
+            Upload master audio track
+          </li>
+          <li class:complete={projectState.hasVideo}>
+            {#if projectState.hasVideo}
+              <CircleCheck size={16} />
+            {:else}
+              <div class="requirement-dot"></div>
+            {/if}
+            Upload at least one video clip
+          </li>
+        </ul>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -216,6 +399,18 @@
   .setup-header h1 {
     color: var(--neon-accent-1);
     margin-bottom: var(--spacing-sm);
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: var(--color-error);
+    color: var(--bg-primary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-lg);
+    font-weight: 500;
   }
 
   .upload-section {
@@ -256,6 +451,11 @@
     background: var(--bg-elevated);
   }
 
+  .upload-area.complete {
+    border-color: var(--color-success);
+    background: var(--bg-elevated);
+  }
+
   .upload-content h3 {
     margin: var(--spacing-md) 0 var(--spacing-sm);
     color: var(--text-primary);
@@ -273,6 +473,10 @@
 
   :global(.upload-icon) {
     color: var(--neon-accent-1);
+  }
+
+  :global(.upload-icon.success) {
+    color: var(--color-success);
   }
 
   .progress-bar {
@@ -298,18 +502,27 @@
     background: var(--bg-tertiary);
     border-radius: var(--radius-sm);
     border: 1px solid var(--neon-accent-1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
   }
 
-  .file-name, .file-count {
+  .file-name, .file-count, .file-duration {
     color: var(--neon-accent-1);
     font-size: 0.9rem;
     font-weight: 500;
+  }
+
+  .file-duration {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
   }
 
   .asset-preview {
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
     padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
   }
 
   .asset-preview h3 {
@@ -347,6 +560,11 @@
     color: var(--neon-accent-2);
   }
 
+  :global(.success-icon) {
+    color: var(--color-success);
+    margin-left: auto;
+  }
+
   .empty-state {
     text-align: center;
     padding: var(--spacing-xl);
@@ -356,6 +574,78 @@
   .empty-state :global(svg) {
     color: var(--text-dimmed);
     margin-bottom: var(--spacing-sm);
+  }
+
+  .proceed-section {
+    text-align: center;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    border: 1px solid var(--neon-accent-1);
+  }
+
+  .proceed-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    background: var(--neon-accent-1);
+    color: var(--bg-primary);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin: 0 auto var(--spacing-md);
+  }
+
+  .proceed-button:hover {
+    background: var(--color-success);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+  }
+
+  .proceed-note {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .requirements-section {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+  }
+
+  .requirements-section h4 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .requirements-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .requirements-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    color: var(--text-secondary);
+  }
+
+  .requirements-list li.complete {
+    color: var(--color-success);
+  }
+
+  .requirement-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--border-color);
   }
 
   @media (max-width: 768px) {

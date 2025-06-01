@@ -1,21 +1,80 @@
 <script lang="ts">
   import { uiStore, toggleLeftPanel, toggleRightPanel } from '$lib/stores/uiStore';
-  import { ChevronLeft, ChevronRight, Settings, Library, Play, Pause, Square, SkipBack, SkipForward } from 'svelte-lucide';
+  import { audioEngineStore } from '$lib/stores/audioEngineStore';
+  import { projectStore } from '$lib/stores/projectStore';
+  import { playAudio, pauseAudio, stopAudio, seekAudio, setAudioVolume, toggleAudioLoop } from '$lib/utils/audioService';
+  import WaveformDisplay from './WaveformDisplay.svelte';
+  import { ChevronLeft, ChevronRight, Settings, Library, Play, Pause, Square, SkipBack, SkipForward, Volume2, Repeat } from 'svelte-lucide';
+  import { formatTime } from '$lib/utils/audioUtils';
 
   $: panelStates = $uiStore.panelStates;
+  $: audioState = $audioEngineStore;
+  $: projectState = $projectStore;
+
+  // Handle seek from waveform
+  function handleWaveformSeek(event: CustomEvent<{ time: number }>) {
+    seekAudio(event.detail.time);
+  }
+
+  // Playback controls
+  async function handlePlay() {
+    try {
+      if (audioState.isPlaying) {
+        pauseAudio();
+      } else {
+        await playAudio();
+      }
+    } catch (error) {
+      console.error('Playback error:', error);
+    }
+  }
+
+  function handleStop() {
+    stopAudio();
+  }
+
+  function handleSkipBack() {
+    const newTime = Math.max(0, audioState.currentTime - 10);
+    seekAudio(newTime);
+  }
+
+  function handleSkipForward() {
+    const newTime = Math.min(audioState.totalDuration, audioState.currentTime + 10);
+    seekAudio(newTime);
+  }
+
+  function handleVolumeChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const volume = parseFloat(target.value);
+    setAudioVolume(volume);
+  }
+
+  function handleTempoChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const tempo = parseInt(target.value);
+    // TODO: Implement tempo change when we add real-time audio manipulation
+    console.log('Tempo change:', tempo);
+  }
+
+  function handlePitchChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const pitch = parseInt(target.value);
+    // TODO: Implement pitch change when we add real-time audio manipulation
+    console.log('Pitch change:', pitch);
+  }
+
+  function handleLoop() {
+    toggleAudioLoop();
+  }
 </script>
 
 <div class="main-workspace">
   <!-- Master Waveform Display Row -->
   <div class="waveform-display" style="grid-area: waveform;">
-    <div class="waveform-container">
-      <h3>Master Waveform Display</h3>
-      <p>Interactive audio waveform with markers, sections, and time ruler</p>
-      <div class="waveform-controls">
-        <button class="zoom-btn" title="Zoom out">−</button>
-        <button class="zoom-btn" title="Zoom in">+</button>
-      </div>
-    </div>
+    <WaveformDisplay 
+      audioBuffer={audioState.audioBuffer}
+      on:seek={handleWaveformSeek}
+    />
   </div>
 
   <!-- Left Side Panel: Asset Library -->
@@ -35,14 +94,29 @@
       <div class="asset-section">
         <h5>Video Clips</h5>
         <div class="asset-list">
-          <div class="asset-item">
-            <div class="asset-thumbnail"></div>
-            <span>clip1.mp4</span>
-          </div>
-          <div class="asset-item">
-            <div class="asset-thumbnail"></div>
-            <span>clip2.mp4</span>
-          </div>
+          {#each projectState.videoClips as clip}
+            <div class="asset-item" class:selected={clip.isSelected}>
+              <div class="asset-thumbnail">
+                {#if clip.thumbnail}
+                  <img src={clip.thumbnail} alt={clip.name} />
+                {:else}
+                  <div class="thumbnail-placeholder"></div>
+                {/if}
+              </div>
+              <div class="asset-info">
+                <span class="asset-name">{clip.name}</span>
+                {#if clip.duration > 0}
+                  <span class="asset-duration">{formatTime(clip.duration)}</span>
+                {/if}
+              </div>
+            </div>
+          {/each}
+          {#if projectState.videoClips.length === 0}
+            <div class="empty-asset-list">
+              <p>No video clips uploaded</p>
+              <small>Go to SETUP mode to upload videos</small>
+            </div>
+          {/if}
         </div>
       </div>
       <div class="asset-section">
@@ -60,7 +134,7 @@
       <div class="video-overlay">
         <div class="video-controls">
           <button class="video-control-btn" title="Fullscreen">⛶</button>
-          <span class="video-status">Preview: Ready</span>
+          <span class="video-status">Preview: {audioState.audioBuffer ? 'Ready' : 'No Audio Loaded'}</span>
         </div>
       </div>
     </div>
@@ -76,18 +150,28 @@
     </div>
     <div class="timeline-content">
       <div class="timeline-track">
-        <div class="clip-block selected" style="left: 10%; width: 20%;">
-          <span class="clip-name">clip1.mp4</span>
-        </div>
-        <div class="clip-block playing" style="left: 35%; width: 15%;">
-          <span class="clip-name">clip2.mp4</span>
-        </div>
+        {#each projectState.videoClips as clip}
+          <div 
+            class="clip-block" 
+            class:selected={clip.isSelected}
+            class:playing={clip.isPlaying}
+            style="left: {(clip.startTime / (audioState.totalDuration || 60)) * 100}%; width: {((clip.endTime - clip.startTime) / (audioState.totalDuration || 60)) * 100}%;"
+          >
+            <span class="clip-name">{clip.name}</span>
+          </div>
+        {/each}
+        {#if projectState.videoClips.length === 0}
+          <div class="empty-timeline">
+            <p>Drag video clips from the Asset Library to create your sequence</p>
+          </div>
+        {/if}
       </div>
       <div class="timeline-ruler">
         <div class="time-marker" style="left: 0%;">0:00</div>
-        <div class="time-marker" style="left: 25%;">0:30</div>
-        <div class="time-marker" style="left: 50%;">1:00</div>
-        <div class="time-marker" style="left: 75%;">1:30</div>
+        <div class="time-marker" style="left: 25%;">{formatTime((audioState.totalDuration || 240) * 0.25)}</div>
+        <div class="time-marker" style="left: 50%;">{formatTime((audioState.totalDuration || 240) * 0.5)}</div>
+        <div class="time-marker" style="left: 75%;">{formatTime((audioState.totalDuration || 240) * 0.75)}</div>
+        <div class="time-marker" style="left: 100%;">{formatTime(audioState.totalDuration || 240)}</div>
       </div>
     </div>
   </div>
@@ -106,13 +190,13 @@
       </button>
     </div>
     <div class="panel-content">
-      <!-- Default State: Audio Analysis Tools -->
+      <!-- Audio Analysis Tools -->
       <div class="control-section">
         <h5>Audio Analysis</h5>
         <div class="analysis-tools">
-          <button class="analysis-btn">Detect Master Beats</button>
-          <button class="analysis-btn">Isolate Stems</button>
-          <button class="analysis-btn">Detect Transients</button>
+          <button class="analysis-btn" disabled={!audioState.audioBuffer}>Detect Master Beats</button>
+          <button class="analysis-btn" disabled={!audioState.audioBuffer}>Isolate Stems</button>
+          <button class="analysis-btn" disabled={!audioState.audioBuffer}>Detect Transients</button>
           <button class="analysis-btn toggle" class:active={false}>Manual Marker Mode</button>
         </div>
       </div>
@@ -123,15 +207,16 @@
         <div class="stem-controls">
           <div class="stem-item">
             <span>Vocals</span>
-            <button class="stem-solo">Solo</button>
-            <button class="stem-detect">Detect</button>
+            <button class="stem-solo" disabled>Solo</button>
+            <button class="stem-detect" disabled>Detect</button>
           </div>
           <div class="stem-item">
             <span>Drums</span>
-            <button class="stem-solo">Solo</button>
-            <button class="stem-detect">Detect</button>
+            <button class="stem-solo" disabled>Solo</button>
+            <button class="stem-detect" disabled>Detect</button>
           </div>
         </div>
+        <p class="stem-note">Stem isolation not yet implemented</p>
       </div>
 
       <!-- Synchronization Rules Section -->
@@ -140,7 +225,7 @@
         <div class="sync-controls">
           <label>
             Driving Audio Feature:
-            <select class="sync-select">
+            <select class="sync-select" disabled>
               <option>Master Beats</option>
               <option>Vocal Transients</option>
               <option>Drum Transients</option>
@@ -148,9 +233,10 @@
           </label>
           <label>
             Switch every:
-            <input type="number" value="4" min="1" class="sync-input"> markers
+            <input type="number" value="4" min="1" class="sync-input" disabled> markers
           </label>
         </div>
+        <p class="sync-note">Sync rules will be available after audio analysis</p>
       </div>
     </div>
   </div>
@@ -158,16 +244,76 @@
   <!-- Master Playback Controls -->
   <div class="playback-controls" style="grid-area: playback;">
     <div class="playback-main">
-      <button class="playback-btn secondary"><SkipBack size={18} /></button>
-      <button class="playback-btn primary"><Play size={20} /></button>
-      <button class="playback-btn secondary"><Square size={16} /></button>
-      <button class="playback-btn secondary"><SkipForward size={18} /></button>
+      <button class="playback-btn secondary" on:click={handleSkipBack} disabled={!audioState.audioBuffer}>
+        <SkipBack size={18} />
+      </button>
+      <button class="playback-btn primary" on:click={handlePlay} disabled={!audioState.audioBuffer}>
+        {#if audioState.isPlaying}
+          <Pause size={20} />
+        {:else}
+          <Play size={20} />
+        {/if}
+      </button>
+      <button class="playback-btn secondary" on:click={handleStop} disabled={!audioState.audioBuffer}>
+        <Square size={16} />
+      </button>
+      <button class="playback-btn secondary" on:click={handleSkipForward} disabled={!audioState.audioBuffer}>
+        <SkipForward size={18} />
+      </button>
+      <button 
+        class="playback-btn secondary loop-btn" 
+        class:active={audioState.isLooping}
+        on:click={handleLoop} 
+        disabled={!audioState.audioBuffer}
+        title="Toggle loop"
+      >
+        <Repeat size={16} />
+      </button>
     </div>
     <div class="playback-info">
-      <span class="time-display">00:00 / 03:24</span>
-      <div class="tempo-controls">
-        <label>BPM: <input type="range" min="60" max="180" value="120" class="tempo-slider"></label>
-        <label>Pitch: <input type="range" min="-12" max="12" value="0" class="pitch-slider"></label>
+      <span class="time-display">
+        {formatTime(audioState.currentTime)} / {formatTime(audioState.totalDuration)}
+      </span>
+      <div class="playback-controls-extended">
+        <div class="volume-control">
+          <Volume2 size={16} />
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01"
+            value={audioState.volume}
+            class="volume-slider"
+            on:input={handleVolumeChange}
+            disabled={!audioState.audioBuffer}
+          >
+        </div>
+        <div class="tempo-controls">
+          <label>BPM: 
+            <input 
+              type="range" 
+              min="60" 
+              max="180" 
+              value={audioState.tempo} 
+              class="tempo-slider"
+              on:input={handleTempoChange}
+              disabled
+            >
+            <span class="tempo-value">{audioState.tempo}</span>
+          </label>
+          <label>Pitch: 
+            <input 
+              type="range" 
+              min="-12" 
+              max="12" 
+              value={audioState.pitch} 
+              class="pitch-slider"
+              on:input={handlePitchChange}
+              disabled
+            >
+            <span class="pitch-value">{audioState.pitch > 0 ? '+' : ''}{audioState.pitch}</span>
+          </label>
+        </div>
       </div>
     </div>
   </div>
@@ -203,48 +349,6 @@
   .waveform-display {
     background: var(--bg-primary);
     position: relative;
-  }
-
-  .waveform-container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: var(--text-secondary);
-    text-align: center;
-    position: relative;
-  }
-
-  .waveform-container h3 {
-    color: var(--neon-accent-1);
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .waveform-controls {
-    position: absolute;
-    top: var(--spacing-sm);
-    right: var(--spacing-sm);
-    display: flex;
-    gap: var(--spacing-xs);
-  }
-
-  .zoom-btn {
-    width: 32px;
-    height: 32px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .zoom-btn:hover {
-    border-color: var(--neon-accent-1);
-    color: var(--neon-accent-1);
   }
 
   /* Panel System */
@@ -338,6 +442,7 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--transition-fast);
+    border: 1px solid transparent;
   }
 
   .asset-item:hover {
@@ -345,12 +450,68 @@
     transform: translateY(-1px);
   }
 
+  .asset-item.selected {
+    border-color: var(--neon-accent-1);
+    background: var(--bg-elevated);
+  }
+
   .asset-thumbnail {
-    width: 32px;
-    height: 18px;
+    width: 48px;
+    height: 27px;
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .asset-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dimmed);
+    font-size: 0.7rem;
+  }
+
+  .asset-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .asset-name {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .asset-duration {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+
+  .empty-asset-list {
+    text-align: center;
+    padding: var(--spacing-lg);
+    color: var(--text-dimmed);
+  }
+
+  .empty-asset-list p {
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+
+  .empty-asset-list small {
+    font-size: 0.8rem;
   }
 
   .coming-soon {
@@ -471,6 +632,16 @@
     margin-bottom: var(--spacing-md);
   }
 
+  .empty-timeline {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-dimmed);
+    font-size: 0.9rem;
+  }
+
   .clip-block {
     position: absolute;
     height: 100%;
@@ -481,14 +652,15 @@
     padding: 0 var(--spacing-sm);
     cursor: pointer;
     transition: all var(--transition-fast);
+    border: 2px solid transparent;
   }
 
   .clip-block.selected {
-    border: 2px solid var(--neon-accent-1);
+    border-color: var(--neon-accent-1);
   }
 
   .clip-block.playing {
-    border: 2px solid var(--neon-accent-2);
+    border-color: var(--neon-accent-2);
     animation: pulse 1.5s infinite;
   }
 
@@ -544,11 +716,18 @@
     border-radius: var(--radius-sm);
     text-align: left;
     font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
   }
 
-  .analysis-btn:hover {
+  .analysis-btn:hover:not(:disabled) {
     border-color: var(--neon-accent-1);
     color: var(--neon-accent-1);
+  }
+
+  .analysis-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .analysis-btn.toggle.active {
@@ -586,12 +765,28 @@
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-sm);
     font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
   }
 
-  .stem-solo:hover,
-  .stem-detect:hover {
+  .stem-solo:hover:not(:disabled),
+  .stem-detect:hover:not(:disabled) {
     border-color: var(--neon-accent-1);
     color: var(--neon-accent-1);
+  }
+
+  .stem-solo:disabled,
+  .stem-detect:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .stem-note,
+  .sync-note {
+    font-size: 0.8rem;
+    color: var(--text-dimmed);
+    font-style: italic;
+    margin-top: var(--spacing-sm);
   }
 
   .sync-controls {
@@ -615,6 +810,12 @@
     color: var(--text-primary);
     padding: var(--spacing-xs);
     border-radius: var(--radius-sm);
+  }
+
+  .sync-select:disabled,
+  .sync-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   /* Playback Controls */
@@ -654,14 +855,26 @@
     border-color: var(--neon-accent-1);
   }
 
-  .playback-btn:hover {
+  .playback-btn:hover:not(:disabled) {
     border-color: var(--neon-accent-1);
     transform: scale(1.05);
   }
 
-  .playback-btn.primary:hover {
-    background: var(--neon-accent-1);
+  .playback-btn.primary:hover:not(:disabled) {
+    background: var(--color-success);
     transform: scale(1.1);
+  }
+
+  .playback-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .loop-btn.active {
+    background: var(--neon-accent-2);
+    border-color: var(--neon-accent-2);
+    color: var(--bg-primary);
   }
 
   .playback-info {
@@ -674,6 +887,24 @@
     color: var(--text-primary);
     font-family: monospace;
     font-size: 1rem;
+    min-width: 100px;
+  }
+
+  .playback-controls-extended {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+
+  .volume-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .volume-slider {
+    width: 80px;
+    accent-color: var(--neon-accent-1);
   }
 
   .tempo-controls {
@@ -691,7 +922,14 @@
 
   .tempo-slider,
   .pitch-slider {
-    width: 80px;
+    width: 60px;
     accent-color: var(--neon-accent-1);
+  }
+
+  .tempo-value,
+  .pitch-value {
+    font-family: monospace;
+    min-width: 30px;
+    text-align: center;
   }
 </style> 
