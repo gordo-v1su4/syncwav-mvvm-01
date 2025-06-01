@@ -101,12 +101,14 @@ export class AudioService {
     this.sourceNode.onended = () => {
       this.handlePlaybackEnd();
     };
+// Capture offset *before* manipulating the store
+const startOffset = get(audioEngineStore).currentTime;
 
-    // Get current state for resuming from pause position
-    const currentState = get(audioEngineStore);
-    const startOffset = currentState.currentTime;
-    
-    // Start playback
+// Stop only the active source; keep currentTime intact
+if (this.sourceNode) {
+  this.sourceNode.stop();
+  this.sourceNode = null;
+}
     this.sourceNode.start(0, startOffset);
     this.startTime = this.audioContext.currentTime - startOffset;
     
@@ -129,16 +131,15 @@ export class AudioService {
       this.sourceNode = null;
     }
 
-    // Store pause position
-    const currentState = get(audioEngineStore);
-    this.pauseTime = currentState.currentTime;
+const exactTime = this.getCurrentTime();
+this.pauseTime = exactTime;
+this.stopTimeTracking();
 
-    this.stopTimeTracking();
-
-    audioEngineStore.update(state => ({
-      ...state,
-      isPlaying: false
-    }));
+audioEngineStore.update(state => ({
+  ...state,
+  isPlaying: false,
+  currentTime: exactTime
+}));
   }
 
   /**

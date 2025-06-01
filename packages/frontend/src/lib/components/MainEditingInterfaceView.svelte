@@ -17,17 +17,19 @@
   }
 
   // Playback controls
-  async function handlePlay() {
-    try {
-      if (audioState.isPlaying) {
-        pauseAudio();
-      } else {
-        await playAudio();
-      }
-    } catch (error) {
-      console.error('Playback error:', error);
-    }
-  }
+async function handlePlay() {
+   try {
+     if (audioState.isPlaying) {
+       pauseAudio();
+     } else {
+       await playAudio();
+     }
+   } catch (error) {
+     console.error('Playback error:', error);
+    // TODO: Show user-friendly error notification
+    // Example: showNotification('Playback failed. Please try again.', 'error');
+   }
+ }
 
   function handleStop() {
     stopAudio();
@@ -320,19 +322,31 @@
 </div>
 
 <style>
-  .main-workspace {
-    height: 100%;
-    display: grid;
-    grid-template-areas: 
-      "asset-panel waveform control-panel"
-      "asset-panel video-preview control-panel" 
-      "asset-panel video-timeline control-panel"
-      "playback playback playback";
-    grid-template-columns: 280px 1fr 320px;
-    grid-template-rows: 120px 1fr 180px 80px;
-    gap: 1px;
-    background: var(--border-color);
-  }
+.main-workspace {
+   height: 100%;
+   display: grid;
+   grid-template-areas: 
+     "asset-panel waveform control-panel"
+     "asset-panel video-preview control-panel" 
+     "asset-panel video-timeline control-panel"
+     "playback playback playback";
+   grid-template-columns: 280px 1fr 320px;
+   grid-template-rows: 120px 1fr 180px 80px;
+   gap: 1px;
+   background: var(--border-color);
+ }
+
+.main-workspace:has(.asset-panel.collapsed) {
+  grid-template-columns: 40px 1fr 320px;
+}
+
+.main-workspace:has(.control-panel.collapsed) {
+  grid-template-columns: 280px 1fr 40px;
+}
+
+.main-workspace:has(.asset-panel.collapsed):has(.control-panel.collapsed) {
+  grid-template-columns: 40px 1fr 40px;
+}
 
   /* Grid Area Components */
   .waveform-display,

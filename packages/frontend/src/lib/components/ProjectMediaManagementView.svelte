@@ -14,8 +14,9 @@
   let audioUploadError = '';
   let videoUploadError = '';
 
-  // Updated backend URL to use port 3002
-  const BACKEND_URL = 'http://localhost:3002';
+ // Backend URL should come from environment configuration
+ import { PUBLIC_BACKEND_URL } from '$env/static/public';
+ const BACKEND_URL = PUBLIC_BACKEND_URL || 'http://localhost:3002';
 
   $: canProceedToEdit = $projectStore.masterAudioInfo && $projectStore.videoClips.length > 0;
 
@@ -161,14 +162,21 @@
     }
   }
 
-  async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; duration: number }> {
+async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; duration: number }> {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+     
+     // Set a timeout to prevent hanging
+     const timeout = setTimeout(() => {
+       URL.revokeObjectURL(video.src);
+       reject(new Error('Thumbnail generation timeout'));
+     }, 10000); // 10 second timeout
 
       video.onloadedmetadata = () => {
+       clearTimeout(timeout);
         canvas.width = video.videoWidth || 320;
         canvas.height = video.videoHeight || 180;
         
@@ -177,6 +185,7 @@
       };
 
       video.onseeked = () => {
+       clearTimeout(timeout);
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
@@ -184,13 +193,14 @@
         } else {
           reject(new Error('Failed to create canvas context for thumbnail'));
         }
-        URL.revokeObjectURL(video.src); // Clean up object URL
+        URL.revokeObjectURL(video.src);
       };
 
       video.onerror = (e) => {
+       clearTimeout(timeout);
         console.error("Error loading video for thumbnail:", e);
         reject(new Error('Failed to load video for thumbnail generation'));
-        URL.revokeObjectURL(video.src); // Clean up object URL
+        URL.revokeObjectURL(video.src);
       };
       
       video.src = URL.createObjectURL(file);
@@ -281,10 +291,15 @@
         on:dragover={handleDragOver}
         role="button"
         tabindex="0"
+       aria-label="Upload audio file - drag and drop or click to browse"
+       aria-describedby="audio-upload-help"
         on:click={triggerAudioUpload}
         on:keydown={(e) => e.key === 'Enter' && triggerAudioUpload()}
       >
         <input type="file" bind:this={audioFileInput} on:change={handleAudioUpload} accept="audio/mpeg, audio/wav, audio/mp3" hidden />
+       <div id="audio-upload-help" class="sr-only">
+         Supports MP3 and WAV audio formats. Maximum file size 100MB.
+       </div>
         <div class="upload-content">
           {#if $projectStore.masterAudioInfo}
             <!-- CircleCheck SVG -->

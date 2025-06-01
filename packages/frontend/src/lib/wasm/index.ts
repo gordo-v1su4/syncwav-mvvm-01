@@ -104,16 +104,30 @@ export async function getWasmModule(): Promise<any> {
  * Detect beats in audio data
  */
 export async function detectBeats(audioBuffer: AudioBuffer): Promise<number[]> {
-  const wasm = await getWasmModule();
-  
-  // Get the first channel of audio data
-  const audioData = audioBuffer.getChannelData(0);
-  const sampleRate = audioBuffer.sampleRate;
-  
-  // Call the module function
-  return Array.from(wasm.detect_beats(audioData, sampleRate));
-}
-
+    const wasm = await getWasmModule();
+    
+   // Handle multi-channel audio by mixing down or analyzing separately
+   let audioData: Float32Array;
+   if (audioBuffer.numberOfChannels === 1) {
+     audioData = audioBuffer.getChannelData(0);
+   } else {
+     // Mix down to mono for beat detection
+     const length = audioBuffer.length;
+     audioData = new Float32Array(length);
+     for (let i = 0; i < length; i++) {
+       let sample = 0;
+       for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+         sample += audioBuffer.getChannelData(channel)[i];
+       }
+       audioData[i] = sample / audioBuffer.numberOfChannels;
+     }
+   }
+    
+    const sampleRate = audioBuffer.sampleRate;
+    
+    // Call the module function
+    return Array.from(wasm.detect_beats(audioData, sampleRate));
+  }
 /**
  * Detect transients in audio data
  */

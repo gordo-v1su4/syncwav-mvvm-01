@@ -16,19 +16,19 @@ export interface LoadingStates {
 }
 
 // Modal state management
-export interface ModalState {
-  isOpen: boolean;
-  type: string | null;
-  data?: any;
-}
+export interface ModalState<T = Record<string, unknown>> {
+   isOpen: boolean;
+   type: string | null;
+  data?: T;
+ }
 
 // Project state types
 export interface ProjectState {
-  hasAudio: boolean;
-  hasVideo: boolean;
-  audioFile?: File;
-  videoFiles: File[];
-}
+   hasAudio: boolean;
+   hasVideo: boolean;
+  audioFileId?: string;
+  videoFileIds: string[];
+ }
 
 // Audio waveform data types
 export interface AudioPeakData {

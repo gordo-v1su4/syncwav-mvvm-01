@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "pnpm run --parallel dev",
+    "dev": "concurrently \"pnpm run dev:frontend\" \"pnpm run dev:backend\"",
 		"dev:frontend": "pnpm --filter @artivus/frontend dev",
 		"dev:backend": "pnpm --filter @artivus/backend dev",
 		"build": "pnpm run build:frontend && pnpm run build:backend",

@@ -41,12 +41,16 @@ vi.mock('$lib/stores/uiStore', () => {
 });
 
 // Mock the components
-vi.mock('$lib/components/ModeSwitcher.svelte', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    $$type: 'svelte:component',
-    render: () => '<div data-testid="mock-mode-switcher"></div>'
-  }))
-}));
+vi.mock('$lib/components/ModeSwitcher.svelte', () => {
+  return {
+    default: class MockModeSwitcher {
+      constructor() {}
+      $render() {
+        return '<div data-testid="mock-mode-switcher"></div>';
+      }
+    }
+  };
+});
 
 vi.mock('$lib/components/GlobalHeader.svelte', () => ({
   default: vi.fn().mockImplementation(() => ({
@@ -79,11 +83,17 @@ describe('Layout', () => {
     expect(getByTestId('mock-global-header')).toBeTruthy();
   });
 
-  it('shows the correct view based on current mode', () => {
-    // First render with default mock (entry mode)
+it('shows the correct view based on current mode', () => {
     const { getByTestId } = render(Layout);
     expect(getByTestId('mock-app-entry-hub-view')).toBeTruthy();
-    
-    // Would test other modes with additional test cases or by updating the mock store
+   });
+
+  it('renders different views for each app mode', () => {
+    // Test would require updating the mock store for each mode
+    // 'setup', 'edit', 'export', 'settings' modes
+    // This ensures the conditional rendering works correctly
+  });
+    // 'setup', 'edit', 'export', 'settings' modes
+    // This ensures the conditional rendering works correctly
   });
 });

@@ -20,22 +20,32 @@ pub fn greet(name: &str) {
 
 // Placeholder for beat detection function
 #[wasm_bindgen]
-pub fn detect_beats(audio_data: &[f32], sample_rate: f32) -> Vec<f64> {
-    console_log!("Beat detection called with {} samples at {}Hz", audio_data.len(), sample_rate);
-    
-    // TODO: Implement actual beat detection algorithm
-    // For now, return dummy beat timestamps every 0.5 seconds
-    let duration = audio_data.len() as f64 / sample_rate as f64;
-    let mut beats = Vec::new();
-    let mut time = 0.5;
-    
-    while time < duration {
-        beats.push(time);
-        time += 0.5;
+ pub fn detect_beats(audio_data: &[f32], sample_rate: f32) -> Vec<f64> {
+    if audio_data.is_empty() {
+        console_log!("Warning: Empty audio data provided to detect_beats");
+        return Vec::new();
     }
     
-    beats
-}
+    if sample_rate <= 0.0 {
+        console_log!("Error: Invalid sample rate: {}", sample_rate);
+        return Vec::new();
+    }
+    
+     console_log!("Beat detection called with {} samples at {}Hz", audio_data.len(), sample_rate);
+     
+     // TODO: Implement actual beat detection algorithm
+     // For now, return dummy beat timestamps every 0.5 seconds
+     let duration = audio_data.len() as f64 / sample_rate as f64;
+     let mut beats = Vec::new();
+     let mut time = 0.5;
+     
+     while time < duration {
+         beats.push(time);
+         time += 0.5;
+     }
+     
+     beats
+ }
 
 // Placeholder for transient detection function
 #[wasm_bindgen]
@@ -58,20 +68,31 @@ pub fn detect_transients(audio_data: &[f32], sample_rate: f32) -> Vec<f64> {
 
 // Placeholder for stem separation function  
 #[wasm_bindgen]
-pub fn separate_stems(audio_data: &[f32], sample_rate: f32) -> js_sys::Array {
-    console_log!("Stem separation called with {} samples at {}Hz", audio_data.len(), sample_rate);
-    
-    // TODO: Implement actual stem separation
-    // For now, return the same audio for both "vocals" and "drums"
-    let vocals = js_sys::Float32Array::from(audio_data);
-    let drums = js_sys::Float32Array::from(audio_data);
-    
+ pub fn separate_stems(audio_data: &[f32], sample_rate: f32) -> js_sys::Array {
     let result = js_sys::Array::new();
-    result.push(&vocals);
-    result.push(&drums);
     
-    result
-}
+    if audio_data.is_empty() {
+        console_log!("Warning: Empty audio data provided to separate_stems");
+        return result;
+    }
+    
+    if sample_rate <= 0.0 {
+        console_log!("Error: Invalid sample rate: {}", sample_rate);
+        return result;
+    }
+    
+     console_log!("Stem separation called with {} samples at {}Hz", audio_data.len(), sample_rate);
+     
+     // TODO: Implement actual stem separation
+     // For now, return the same audio for both "vocals" and "drums"
+     let vocals = js_sys::Float32Array::from(audio_data);
+     let drums = js_sys::Float32Array::from(audio_data);
+     
+     result.push(&vocals);
+     result.push(&drums);
+     
+     result
+ }
 
 #[cfg(test)]
 mod tests {
@@ -91,11 +112,11 @@ mod tests {
         let sample_rate = 44100.0;
         let beats = detect_beats(&audio_data, sample_rate);
         
-        // Expecting dummy beats every 0.5 seconds
-        assert!(!beats.is_empty());
-        assert!(beats.len() >= 19); // 10 seconds / 0.5 seconds per beat = 20 beats, but loop condition is < duration
-        assert!(beats[0] == 0.5);
-        assert!(beats[1] == 1.0);
+// Expecting dummy beats every 0.5 seconds
+         assert!(!beats.is_empty());
+        assert_eq!(beats.len(), 19); // 10 seconds with beats at 0.5, 1.0, 1.5... 9.5 = 19 beats
+         assert!(beats[0] == 0.5);
+         assert!(beats[1] == 1.0);
     }
 
     #[test]

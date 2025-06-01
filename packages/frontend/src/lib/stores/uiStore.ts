@@ -7,12 +7,14 @@ const initialUIState: UIState = {
   panelStates: {
     leftPanelCollapsed: false,
     rightPanelCollapsed: false
-  },
-  projectState: {
-    hasAudio: false,
-    hasVideo: false,
-    videoFiles: []
-  },
+projectState: {
+   hasAudio: false,
+   hasVideo: false,
+  videoFiles: [],
+  audioFile: null as File | null
+ },
+  audioFile: null as File | null
+ },
   loadingStates: {
     audioAnalysis: false,
     stemIsolation: false,

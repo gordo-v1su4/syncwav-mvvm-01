@@ -50,10 +50,12 @@
     render();
   }
 
-  // Re-render when state changes
-  $: if (ctx && peaks.length > 0) {
-    render();
-  }
+// Re-render when any visual input changes
+$: {
+  // Explicitly reference deps so Svelte tracks them
+  void currentTime; void markers; void zoom; void scrollOffset;
+  if (ctx && peaks.length > 0) render();
+}
 
   function setupCanvas() {
     if (!canvas || !ctx) return;
@@ -73,7 +75,8 @@
   function generatePeaks() {
     if (!audioBuffer) return;
     
-    const samplesPerPixel = calculateSamplesPerPixel(audioBuffer, width, zoom);
+    const canvasWidth = canvas ? canvas.clientWidth : width;
+    const samplesPerPixel = calculateSamplesPerPixel(audioBuffer, canvasWidth, zoom);
     peaks = generateWaveformPeaks(audioBuffer, samplesPerPixel);
   }
 

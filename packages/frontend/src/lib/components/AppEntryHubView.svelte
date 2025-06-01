@@ -7,6 +7,12 @@
     resetProject();
     setAppMode('setup'); // Navigate to SETUP mode
   }
+
+  function openExistingProject() {
+    // TODO: Implement file picker or project selection logic
+    // For now, placeholder functionality
+    console.log('Open existing project functionality to be implemented');
+  }
 </script>
 
 <div class="app-entry-hub-view">
@@ -43,7 +49,7 @@
     </div>
     
     <div class="version-info">
-      <span>Version 0.1.0 (Development Build)</span>
+      <span>Version {version} (Development Build)</span>
     </div>
   </div>
 </div>
@@ -150,4 +156,5 @@
     color: var(--text-dimmed);
     font-size: 0.8rem;
   }
+</style>  }
 </style>

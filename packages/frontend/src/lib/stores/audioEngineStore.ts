@@ -172,20 +172,23 @@ export const setAnalysisProgress = (
 
 // Audio context management
 export const initAudioContext = () => {
+  const existing = get(audioEngineStore).audioContext;
+  if (existing) return existing;
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  audioEngineStore.update(state => ({ ...state, audioContext }));
-  return audioContext;
+   audioEngineStore.update(state => ({ ...state, audioContext }));
+   return audioContext;
 };
 
 export const loadAudioBuffer = async (file: File): Promise<AudioBuffer> => {
   const arrayBuffer = await file.arrayBuffer();
-  const audioContext = await new Promise<AudioContext>((resolve) => {
-    audioEngineStore.subscribe(state => {
-      if (state.audioContext) {
-        resolve(state.audioContext);
-      }
-    })();
+const audioContext = await new Promise<AudioContext>((resolve) => {
+  const unsubscribe = audioEngineStore.subscribe(state => {
+    if (state.audioContext) {
+      unsubscribe();
+      resolve(state.audioContext);
+    }
   });
+});
   
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
   
