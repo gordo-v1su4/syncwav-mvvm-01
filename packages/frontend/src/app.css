@@ -1,0 +1,237 @@
+/* Global CSS Variables for Artivus Engine "rust-peaks" Dark Theme */
+:root {
+  /* Base dark background colors */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #151515;
+  --bg-tertiary: #202020;
+  --bg-elevated: #252525;
+  
+  /* Text colors */
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --text-dimmed: #808080;
+  
+  /* Rust-Peaks Neon Accent System */
+  --neon-accent-1: #00ff88;
+  --neon-accent-2: #ff6b35;
+  --neon-accent-3: #00d4ff;
+  --neon-accent-warm: #ffaa3d;
+  
+  /* Semantic State Colors */
+  --color-error: #ff5555;
+  --color-warning: #ffaa00;
+  --color-success: #55ff55;
+  --color-info: #3d9eff;
+  
+  /* UI element colors */
+  --border-color: #333333;
+  --border-accent: var(--neon-accent-1);
+  --hover-bg: #2a2a2a;
+  --active-bg: #353535;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.3s ease-out;
+  --transition-slow: 0.5s ease-out;
+}
+
+/* CSS Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+body.artivus-app {
+  background: var(--bg-primary);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-accent-1);
+}
+
+/* Global Utility Classes */
+.neon-text-accent-1 {
+  color: var(--neon-accent-1);
+}
+
+.neon-text-accent-2 {
+  color: var(--neon-accent-2);
+}
+
+.dark-panel-bg {
+  background-color: var(--bg-secondary);
+}
+
+.elevated-panel-bg {
+  background-color: var(--bg-elevated);
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.gap-sm {
+  gap: var(--spacing-sm);
+}
+
+.gap-md {
+  gap: var(--spacing-md);
+}
+
+.gap-lg {
+  gap: var(--spacing-lg);
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: 2px solid var(--neon-accent-1);
+  outline-offset: 2px;
+}
+
+/* Button base styles */
+button {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button:hover {
+  background: var(--hover-bg);
+  border-color: var(--neon-accent-1);
+}
+
+button:active {
+  background: var(--active-bg);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input base styles */
+input, select, textarea {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  font-family: inherit;
+  font-size: inherit;
+  transition: border-color var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--neon-accent-1);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.125rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
+
+p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Full height layout */
+#svelte {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive design for desktop message */
+.desktop-only-message {
+  display: none; /* Hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  text-align: center;
+  padding: 2rem;
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) { /* Adjust breakpoint as needed for "desktop" */
+  .app-shell {
+    display: none; /* Hide the main app on small screens */
+  }
+
+  .desktop-only-message {
+    display: flex; /* Show the message on small screens */
+  }
+}

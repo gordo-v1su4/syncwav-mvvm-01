@@ -15,47 +15,47 @@ Okay, this is a highly detailed breakdown of the Artivus Engine MVP into a check
 ## General Project Setup & Cross-Cutting Concerns
 
 ### Project Initialization & Core Structure (Ref: Story 1.1)
-*   `- [ ] Initialize a new Svelte project using Vite.`
-*   `- [ ] Configure Vite for Svelte development (including HMR, TypeScript support if planned).`
-*   `- [ ] Set up a monorepo structure (e.g., using pnpm workspaces, Turborepo, or Nx) to house:
-    *   `- [ ] Frontend Svelte application (`packages/frontend`).`
+*   `- [X] Initialize a new Svelte project using Vite.`
+*   `- [X] Configure Vite for Svelte development (including HMR, TypeScript support if planned).`
+*   `- [X] Set up a monorepo structure (e.g., using pnpm workspaces, Turborepo, or Nx) to house:
+    *   `- [X] Frontend Svelte application (`packages/frontend`).`
     *   `- [ ] Rust/WASM modules (`packages/rust-modules` or similar).`
-    *   `- [ ] Minimal backend service (`packages/backend`).`
-*   `- [ ] Define and configure ESLint and Prettier for consistent code style across the monorepo.`
+    *   `- [X] Minimal backend service (`packages/backend`).`
+*   `- [X] Define and configure ESLint and Prettier for consistent code style across the monorepo.`
 *   `- [ ] Implement basic unit testing setup (e.g., Vitest) for Svelte components.`
 *   `- [ ] Implement basic unit testing setup for Rust modules.`
 *   `- [ ] Set up `wasm-pack` or similar tool for building Rust to WASM and integrating with the frontend.`
 
 ### Backend Service - Initial Setup (Minimal for MVP - Ref: Story 1.2, 1.4)
-*   `- [ ] Choose backend stack: Node.js/Express (Alternative: Rust with Actix/Axum, requires confirmation by Architect). For this checklist, Node.js/Express is assumed for initial tasks.`
-*   `- [ ] Create a basic Node.js/Express application structure within `packages/backend`.`
-*   `- [ ] Configure basic middleware (e.g., `cors`, `body-parser` for JSON and multipart/form-data).`
-*   `- [ ] Implement a health check endpoint (e.g., `/health`) for the backend service.`
-*   `- [ ] Define a strategy for temporary storage of uploaded media files on the backend (e.g., a `/uploads` directory, ensuring it's not directly publicly accessible).`
-*   `- [ ] Implement basic error handling middleware for the backend.`
+*   `- [X] Choose backend stack: Node.js/Express (Alternative: Rust with Actix/Axum, requires confirmation by Architect). For this checklist, Node.js/Express is assumed for initial tasks.`
+*   `- [X] Create a basic Node.js/Express application structure within `packages/backend`.`
+*   `- [X] Configure basic middleware (e.g., `cors`, `body-parser` for JSON and multipart/form-data).`
+*   `- [X] Implement a health check endpoint (e.g., `/health`) for the backend service.`
+*   `- [X] Define a strategy for temporary storage of uploaded media files on the backend (e.g., a `/uploads` directory, ensuring it's not directly publicly accessible).`
+*   `- [X] Implement basic error handling middleware for the backend.`
 
 ## Epic 1: Project Foundation & Core Media Handling
 
 ### Story 1.1: As a Creator, I want to set up a new project in Artivus Engine so that I can start working on my audio-visual piece.
 *   `Core Application Shell & Layout:`
-    *   `- [ ] Create the main `App.svelte` root component in the frontend package.`
-    *   `- [ ] Implement a global layout structure within `App.svelte` to host the mode switcher and main content area.`
-    *   `- [ ] Create a `ModeSwitcher.svelte` component for primary "Mode" Tabs ([SETUP], [EDIT], [EXPORT]).`
-    *   `- [ ] Style `ModeSwitcher.svelte` according to UI/UX specs: dark mode, "rust-peaks" inspiration, neon accents for active tab.`
-    *   `- [ ] Implement logic in `ModeSwitcher.svelte` and `App.svelte` for tab switching to conditionally render different view components.`
-    *   `- [ ] Create placeholder Svelte components for each main view:
-        *   `- [ ] `AppEntryHubView.svelte` (Initial view for project creation/selection).`
-        *   `- [ ] `ProjectMediaManagementView.svelte` (for [SETUP] Mode).`
-        *   `- [ ] `MainEditingInterfaceView.svelte` (for [EDIT] Mode).`
-        *   `- [ ] `ExportView.svelte` (for [EXPORT] Mode).`
-        *   `- [ ] `ApplicationSettingsView.svelte` (Minimal for MVP).`
+    *   `- [X] Create the main `App.svelte` root component in the frontend package.`
+    *   `- [X] Implement a global layout structure within `App.svelte` to host the mode switcher and main content area.`
+    *   `- [X] Create a `ModeSwitcher.svelte` component for primary "Mode" Tabs ([SETUP], [EDIT], [EXPORT]).`
+    *   `- [X] Style `ModeSwitcher.svelte` according to UI/UX specs: dark mode, "rust-peaks" inspiration, neon accents for active tab.`
+    *   `- [X] Implement logic in `ModeSwitcher.svelte` and `App.svelte` for tab switching to conditionally render different view components.`
+    *   `- [X] Create placeholder Svelte components for each main view:
+        *   `- [X] `AppEntryHubView.svelte` (Initial view for project creation/selection).`
+        *   `- [X] `ProjectMediaManagementView.svelte` (for [SETUP] Mode).`
+        *   `- [X] `MainEditingInterfaceView.svelte` (for [EDIT] Mode).`
+        *   `- [X] `ExportView.svelte` (for [EXPORT] Mode).`
+        *   `- [X] `ApplicationSettingsView.svelte` (Minimal for MVP).`
     *   `- [ ] Design and implement a `GlobalHeader.svelte` component (or persistent menu) for navigation to "App Entry / Project Hub" and "Application Settings".`
     *   `- [ ] Apply global CSS for the dark mode theme (body background, default text colors, scrollbar styling if custom).`
     *   `- [ ] Implement CSS utility classes for "rust-peaks" aesthetic elements and neon accent colors.`
     *   `- [ ] Ensure the main application layout is responsive for common desktop screen resolutions.`
     *   `- [ ] Implement logic to display a "best viewed on desktop" message when accessed on tablet/mobile screen sizes.`
 *   `Project Initialization Logic:`
-    *   `- [ ] Create a Svelte store (`projectStore.js` or similar) for managing global project state (e.g., `currentProject`, `masterAudioInfo`, `videoAssets`, `currentMode`).`
+    *   `- [X] Create a Svelte store (`projectStore.js` or similar) for managing global project state (e.g., `currentProject`, `masterAudioInfo`, `videoAssets`, `currentMode`).`
     *   `- [ ] Implement a "Create New Project" button/action in `AppEntryHubView.svelte`.`
     *   `- [ ] Clicking "Create New Project" should initialize/reset relevant parts of `projectStore` and navigate the user to the "SETUP" Mode (`ProjectMediaManagementView.svelte`).`
 *   `Initial Accessibility:`
@@ -64,12 +64,12 @@ Okay, this is a highly detailed breakdown of the Artivus Engine MVP into a check
 
 ### Story 1.2: As a Creator, I want to upload a primary audio track (e.g., MP3, WAV) into my project so that I can use it as the basis for my synchronization.
 *   `Backend Endpoint for Audio Upload:`
-    *   `- [ ] (Backend) Implement a POST endpoint (e.g., `/upload/audio`) to receive audio file uploads.`
-    *   `- [ ] (Backend) Use `multer` or similar middleware to handle `multipart/form-data` for file uploads.`
-    *   `- [ ] (Backend) Validate uploaded file type (server-side check for MP3, WAV MIME types).`
-    *   `- [ ] (Backend) Implement file size limits for uploads (configurable).`
-    *   `- [ ] (Backend) Save the uploaded audio file to the temporary storage location with a unique filename.`
-    *   `- [ ] (Backend) Return a JSON response with success status and an identifier/path for the uploaded file (e.g., `{ success: true, fileId: 'unique_id.mp3', originalName: 'track.mp3' }`).`
+    *   `- [X] (Backend) Implement a POST endpoint (e.g., `/upload/audio`) to receive audio file uploads.`
+    *   `- [X] (Backend) Use `multer` or similar middleware to handle `multipart/form-data` for file uploads.`
+    *   `- [X] (Backend) Validate uploaded file type (server-side check for MP3, WAV MIME types).`
+    *   `- [X] (Backend) Implement file size limits for uploads (configurable).`
+    *   `- [X] (Backend) Save the uploaded audio file to the temporary storage location with a unique filename.`
+    *   `- [X] (Backend) Return a JSON response with success status and an identifier/path for the uploaded file (e.g., `{ success: true, fileId: 'unique_id.mp3', originalName: 'track.mp3' }`).`
 *   `Frontend UI for Audio Upload ([SETUP] Mode):`
     *   `- [ ] In `ProjectMediaManagementView.svelte` ([SETUP] Mode), implement a "Media Upload Area".`
     *   `- [ ] Add a styled file input element (`<input type="file" accept="audio/mp3, audio/wav">`) or a button that triggers a hidden file input for master audio selection.`
@@ -116,11 +116,11 @@ Okay, this is a highly detailed breakdown of the Artivus Engine MVP into a check
 
 ### Story 1.4: As a Creator, I want to upload at least one video clip (e.g., MP4) into my project so that I can synchronize it with my audio.
 *   `Backend Endpoint for Video Upload:`
-    *   `- [ ] (Backend) Implement a POST endpoint (e.g., `/upload/video`) to receive video file uploads.`
-    *   `- [ ] (Backend) Use `multer` or similar for `multipart/form-data` handling.`
-    *   `- [ ] (Backend) Validate uploaded file type (MP4 MIME type) and size.`
-    *   `- [ ] (Backend) Save uploaded video to temporary storage with a unique filename.`
-    *   `- [ ] (Backend) Return JSON response with success status and file identifier/path (e.g., `{ success: true, fileId: 'unique_video.mp4', originalName: 'clip.mp4' }`).`
+    *   `- [X] (Backend) Implement a POST endpoint (e.g., `/upload/video`) to receive video file uploads.`
+    *   `- [X] (Backend) Use `multer` or similar for `multipart/form-data` handling.`
+    *   `- [X] (Backend) Validate uploaded file type (MP4 MIME type) and size.`
+    *   `- [X] (Backend) Save uploaded video to temporary storage with a unique filename.`
+    *   `- [X] (Backend) Return JSON response with success status and file identifier/path (e.g., `{ success: true, fileId: 'unique_video.mp4', originalName: 'clip.mp4' }`).`
 *   `Frontend UI for Video Upload ([SETUP] Mode):`
     *   `- [ ] In `ProjectMediaManagementView.svelte`, add UI for uploading video clips (can be part of the same "Media Upload Area" or a distinct section, allowing multiple file selection).`
     *   `- [ ] Add a styled file input element (`<input type="file" accept="video/mp4" multiple>`) or button.`
@@ -189,8 +189,8 @@ Okay, this is a highly detailed breakdown of the Artivus Engine MVP into a check
 
 ### Story 2.1: As a Creator, I want the system to automatically detect and display beat markers on my master audio track's waveform so that I have a rhythmic guide for editing.
 *   `Beat Detection WASM Module (Rust/Essentia.js):`
-    *   `- [ ] (Rust/WASM package) Research and select a suitable beat detection algorithm (e.g., from Essentia.js, or implement/port one in Rust).`
-    *   `- [ ] (Rust/WASM package) Create a Rust function `detect_beats(audio_data: Vec<f32>, sample_rate: f32) -> Vec<f64>` that returns beat timestamps.`
+    *   `- [X] (Rust/WASM package) Research and select a suitable beat detection algorithm (e.g., from Essentia.js, or implement/port one in Rust).`
+    *   `- [X] (Rust/WASM package) Create a Rust function `detect_beats(audio_data: Vec<f32>, sample_rate: f32) -> Vec<f64>` that returns beat timestamps.`
     *   `- [ ] (Rust/WASM package) Compile this function to a WASM module, exposing `detect_beats`.`
     *   `- [ ] (Frontend) Load and instantiate this WASM module in the Svelte app.`
 *   `Frontend UI for Beat Detection:`
@@ -212,9 +212,9 @@ Okay, this is a highly detailed breakdown of the Artivus Engine MVP into a check
 
 ### Story 2.2: As a Creator, I want to isolate at least two key stems (e.g., vocals, drums) from my master audio track so I can analyze their specific rhythmic or dynamic content.
 *   `Stem Isolation WASM Module (Rust/Suitable Library):`
-    *   `- [ ] (Rust/WASM package) Critical Research Task: Find a lightweight, client-side capable stem separation model/library for vocals and drums that can be compiled to WASM (e.g., explore options within Essentia.js, or look for WASM ports of models like a very light Spleeter variant if possible). This is a complex feature; for MVP, a simplified or lower-quality approach might be needed if full separation is too heavy.`
-    *   `- [ ] (Rust/WASM package) If a suitable library/model is found:
-        *   `- [ ] Implement Rust bindings and a function `separate_stems(audio_data: Vec<f32>, sample_rate: f32) -> (Vec<f32>, Vec<f32>)` returning (vocals_data, drums_data).`
+    *   `- [X] (Rust/WASM package) Critical Research Task: Find a lightweight, client-side capable stem separation model/library for vocals and drums that can be compiled to WASM (e.g., explore options within Essentia.js, or look for WASM ports of models like a very light Spleeter variant if possible). This is a complex feature; for MVP, a simplified or lower-quality approach might be needed if full separation is too heavy.`
+    *   `- [X] (Rust/WASM package) If a suitable library/model is found:
+        *   `- [X] Implement Rust bindings and a function `separate_stems(audio_data: Vec<f32>, sample_rate: f32) -> (Vec<f32>, Vec<f32>)` returning (vocals_data, drums_data).`
         *   `- [ ] Compile this to the WASM module.`
     *   `- [ ] (Frontend) Integrate this new WASM function.`
 *   `Frontend UI for Stem Isolation:`
@@ -233,7 +233,7 @@ Okay, this is a highly detailed breakdown of the Artivus Engine MVP into a check
 
 ### Story 2.3: As a Creator, I want to solo an isolated stem (e.g., vocals) and have the system detect and display its specific transients or amplitude ramps as markers so I can use these nuanced events for synchronization.
 *   `Transient Detection WASM Module (for Stems & Master):`
-    *   `- [ ] (Rust/WASM package) Implement/integrate a transient detection algorithm (e.g., from Essentia.js or custom) as a Rust function `detect_transients(audio_data: Vec<f32>, sample_rate: f32) -> Vec<f64>`, returning transient timestamps.`
+    *   `- [X] (Rust/WASM package) Implement/integrate a transient detection algorithm (e.g., from Essentia.js or custom) as a Rust function `detect_transients(audio_data: Vec<f32>, sample_rate: f32) -> Vec<f64>`, returning transient timestamps.`
     *   `- [ ] (Rust/WASM package) Compile and expose this in the WASM module.`
     *   `- [ ] (Optional MVP - Amplitude Ramps) Research/implement simplified "amplitude ramp" or significant energy change detection in Rust/WASM. If too complex, defer post-MVP and focus on transients.`
 *   `Frontend UI for Stem Controls & Analysis (`StemControls.svelte`):`
