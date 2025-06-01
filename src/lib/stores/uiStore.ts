@@ -12,6 +12,17 @@ const initialUIState: UIState = {
     hasAudio: false,
     hasVideo: false,
     videoFiles: []
+  },
+  loadingStates: {
+    audioAnalysis: false,
+    stemIsolation: false,
+    transientDetection: false,
+    mediaUpload: false
+  },
+  modalState: {
+    isOpen: false,
+    type: null,
+    data: null
   }
 };
 
@@ -64,6 +75,40 @@ export const addVideoFile = (file: File) => {
       ...state.projectState,
       videoFiles: [...state.projectState.videoFiles, file],
       hasVideo: true
+    }
+  }));
+};
+
+// Loading state management
+export const setLoadingState = (operation: keyof UIState['loadingStates'], isLoading: boolean) => {
+  uiStore.update(state => ({
+    ...state,
+    loadingStates: {
+      ...state.loadingStates,
+      [operation]: isLoading
+    }
+  }));
+};
+
+// Modal management
+export const openModal = (type: string, data?: any) => {
+  uiStore.update(state => ({
+    ...state,
+    modalState: {
+      isOpen: true,
+      type,
+      data
+    }
+  }));
+};
+
+export const closeModal = () => {
+  uiStore.update(state => ({
+    ...state,
+    modalState: {
+      isOpen: false,
+      type: null,
+      data: null
     }
   }));
 }; 

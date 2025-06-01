@@ -11,15 +11,17 @@
   --text-secondary: #b0b0b0;
   --text-dimmed: #808080;
   
-  /* Neon accent colors */
+  /* Rust-Peaks Neon Accent System */
   --neon-accent-1: #00ff88;
   --neon-accent-2: #ff6b35;
   --neon-accent-3: #00d4ff;
+  --neon-accent-warm: #ffaa3d;
   
-  /* State colors */
+  /* Semantic State Colors */
   --color-error: #ff5555;
   --color-warning: #ffaa00;
   --color-success: #55ff55;
+  --color-info: #3d9eff;
   
   /* UI element colors */
   --border-color: #333333;

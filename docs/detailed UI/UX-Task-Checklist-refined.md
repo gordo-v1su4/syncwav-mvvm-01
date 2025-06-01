@@ -1,210 +1,339 @@
-Okay, I've carefully reviewed the new screenshots and your feedback. The Wavtool UI provides excellent inspiration, especially for the right-hand "AI & Skills" / "Composer" panel and the main sequencer area.
-
-Here's the refined UI/UX Task Checklist. I've integrated the new insights, particularly for the [EDIT] Mode's right-hand panel and the bottom video timeline, while preserving the core Artivus Engine functionality.
-
-**Key Changes Based on New Input:**
-
-1.  **Right-Hand Panel in [EDIT] Mode (was "Contextual Controls Panel"):**
-    *   This will now be more directly inspired by Wavtool's "AI & Skills" / "Composer" / "Conductor Chat" right-hand panel. I'll refer to it as `AudioDrivenControlPanel.svelte`.
-    *   It will be the primary hub for defining how audio drives video. Instead of many static tabs, it might have a more hierarchical or context-sensitive structure. For MVP, it will focus on:
-        *   Audio Analysis Triggers.
-        *   Marker Management.
-        *   Stem Controls.
-        *   **Crucially: Detailed controls for "Audio Section" selection and rule definition (sync, speed ramps, effects) that become active when a section is selected on the waveform.**
-    *   This panel will also be the conceptual home for future AI video generation/grouping features, mirroring Wavtool's "Compose with AI" area but for visuals.
-
-2.  **Bottom Main Interactive Timeline (`VideoTimeline.svelte`):**
-    *   This will now explicitly take visual cues from Wavtool's MIDI sequencer/piano roll area for its layout and the way items (video clips, in our case) are displayed and manipulated as blocks on a timeline.
-
-3.  **Branding & Aesthetics:** The "Wavtool-inspired" dark theme, "rust-peaks" elements, and "neon accents" will be consistently applied.
-
----
-
 # Artivus Engine - Detailed UI/UX Task Checklist (Refined)
 
-## I. Global Styles, App Shell & Core Navigation
+*Inspired by Wavtool's DAW interface patterns while maintaining Artivus Engine's unique "rust-peaks" aesthetic and audio-visual synchronization focus.*
 
-### A. Foundational Styling & Theming (Global CSS / Svelte `app.html` & `+layout.svelte`)
-*   `- [ ] Define and implement global CSS variables for the primary color palette:
-    *   `- [ ] Base dark background color(s) (Wavtool-inspired, very dark gray/near black, avoiding slate blue, e.g., `#1A1A1A` to `#202020`).`
-    *   `- [ ] Slightly lighter dark shades for panel backgrounds or elevated surfaces (e.g., `#282828` to `#303030`).`
-    *   `- [ ] Primary text color (light gray/off-white for readability, e.g., `#E0E0E0`).`
-    *   `- [ ] Secondary text color (dimmer light gray, e.g., `#A0A0A0`).`
-    *   `- [ ] Defined bright neon accent color #1 (e.g., vibrant cyan, electric blue, or "rust-peaks" orange/amber for active states, important markers, highlights – *Final color to be from branding*).`
-    *   `- [ ] Defined bright neon accent color #2 (a complementary neon for secondary highlights or different interactive elements – *Final color to be from branding*).`
-    *   `- [ ] Error/warning state color (e.g., a desaturated red/orange compatible with dark theme, e.g., `#FF6B6B`).`
-    *   `- [ ] Success state color (e.g., a desaturated green compatible with dark theme, e.g., `#51CF66`).`
-*   `- [ ] Apply global dark mode theme to the `<body>` and default HTML elements. Ensure `background-color` is set on `html` and `body`.`
-*   `- [ ] Define global typography: Select and apply a clean, professional sans-serif font family (e.g., Inter, Roboto, Open Sans) suitable for UI. Ensure sufficient font weights are available.`
-*   `- [ ] Style global scrollbars (if custom styling is desired) to match the dark theme (thin, unobtrusive, possibly with neon accent on hover for the thumb).`
-*   `- [ ] Implement basic CSS reset or normalize.css.`
-*   `- [ ] Create global utility CSS classes (e.g., `neon-text-accent-1`, `dark-panel-bg`, `flex-center`, `button-primary`, `button-secondary`).`
-*   `- [ ] Ensure all global color combinations meet WCAG AA contrast ratios (text on background, accents on their respective backgrounds).`
+## Project Context & Design Philosophy
 
-### B. Main Application Shell (`App.svelte` or Root Layout Component)
-*   `- [ ] Create the main application shell Svelte component (`App.svelte` or `+layout.svelte`).`
-*   `- [ ] Implement the overall page structure: Top Bar (for mode switcher & global actions), Main Content Area which will dynamically change based on the selected mode.`
-*   `- [ ] Ensure the shell fills the viewport and uses the global dark theme background.`
+**Core Aesthetic:** Professional dark theme with "rust-peaks" branding, featuring carefully calibrated neon accents that enhance usability without overwhelming the interface. The design should feel modern, powerful, and deeply connected to music production workflows.
 
-### C. Top Bar (Combined Mode Switcher & Global Actions) (Conceptual: `TopBar.svelte`)
-*   `- [ ] Design and implement `TopBar.svelte` component. This will be a persistent bar at the top.
-    *   `- [ ] **Left Side:** Artivus Engine Logo/Name (placeholder initially). (Wavtool has "WAVTOOL" text).`
-    *   `- [ ] **Center:** Primary Mode Tabs: "[SETUP]", "[EDIT]", "[EXPORT]".
-        *   `- [ ] Styling: Inspired by Wavtool's top tabs. Flat, integrated look.
-            *   `- [ ] Tab background: Matches TopBar background.`
-            *   `- [ ] Tab text: Clear, readable (primary text color).`
-            *   `- [ ] Active tab indication: Bright neon accent color #1 for an underline or top border, and possibly slightly brighter text.`
-            *   `- [ ] Hover state for tabs: Subtle background change or text brightness increase.`
-    *   `- [ ] **Right Side:** Global action icons/buttons (e.g., "Project Hub/Home," "Settings," "User Account/Login" - MVP might only have Project Hub & Settings).
-        *   `- [ ] Styled as icons with tooltips, or small text buttons, fitting the dark theme.`
-*   `- [ ] Implement Svelte store (`uiStore.js`) for `currentAppMode` and connect to tabs.`
-*   `- [ ] Root layout renders correct View component based on `currentAppMode`.`
-*   `- [ ] Ensure tabs and global action buttons are keyboard navigable and operable.`
+**Technical Foundation:** SvelteKit application with custom CSS (no Tailwind), WebGL2 video rendering, Web Audio API, and Rust/WASM performance modules.
 
-## II. Application Views / Modes
-
-### A. [SETUP] Mode: `ProjectMediaManagementView.svelte`
-*   `- [ ] Design layout for `ProjectMediaManagementView.svelte`: Clean, focused on media ingest.`
-*   `- [ ] **Media Upload Area:**
-    *   `- [ ] Centered or prominent section for file input.`
-    *   `- [ ] "Upload Master Audio (MP3, WAV)" button/dropzone: Large, clear text/icon (music note + upload). Dark button, neon accent on hover. Provide visual feedback on drag-over.`
-    *   `- [ ] "Upload Video Clips (MP4)" button/dropzone: Similar styling (video icon + upload).`
-    *   `- [ ] Progress bar display for uploads: Style: thin bar, neon accent for fill, percentage text. Show per-file progress if multiple videos are uploaded.`
-*   `- [ ] **Project Asset List (Simplified for [SETUP] mode):**
-    *   `- [ ] A simple list displaying names of uploaded master audio and video clips.
-    *   `- [ ] Text indication: "Media uploaded. Go to EDIT mode to start synchronizing."`
-*   `- [ ] Apply consistent dark theme, professional "rust-peaks" feel.`
-*   `- [ ] Ensure interactive elements are keyboard accessible.`
-
-### B. [EDIT] Mode: `MainEditingInterfaceView.svelte` (Main Workspace)
-*   `- [ ] Design the multi-panel layout inspired by DAWs like Wavtool:
-    *   `- [ ] Top: Master Waveform Display Row (`WaveformDisplay.svelte`).`
-    *   `- [ ] Center-Left (main area): Video Preview (`VideoPreview.svelte`) above the Video Timeline (`VideoTimeline.svelte`).`
-    *   `- [ ] Left: Collapsible Project Asset Library Panel (`AssetLibrary.svelte`).`
-    *   `- [ ] Right: Collapsible Audio-Driven Control Panel (`AudioDrivenControlPanel.svelte`).`
-    *   `- [ ] Bottom (spanning below Video Timeline & Asset Library): Master Playback Controls (`PlaybackControls.svelte`).`
-*   `- [ ] Implement panel collapsibility for Left and Right side panels: Clear icons (e.g., chevrons), smooth animation. State managed in `uiStore.js`.`
-
-    **B.1. Top Prominent Waveform Display Row (`WaveformDisplay.svelte`)**
-    *   `- [ ] (Largely as before) Design and implement `WaveformDisplay.svelte`. Canvas rendering.`
-    *   `- [ ] Styling: Very dark background. Waveform color: bright neon accent or clear contrasting color (e.g., light gray).`
-    *   `- [ ] Visual playhead: Thin vertical line, contrasting color (e.g., different neon accent or white).`
-    *   `- [ ] Marker Rendering (Visually Distinct):
-        *   `- [ ] Master Beat Markers: Neon Accent #1 vertical lines.`
-        *   `- [ ] Master Transient Markers: Neon Accent #2 diamonds/dots.`
-        *   `- [ ] Stem-Specific Markers: Different color (e.g., from a predefined set for stems) when visible.`
-        *   `- [ ] Custom User Markers: Unique color/style, grabbable handle.`
-    *   `- [ ] Audio Section Rendering:
-        *   `- [ ] Translucent colored overlays on waveform, or distinct regions on a ruler. Wavtool uses colored blocks above tracks for sections; adapt this for a single master waveform.`
-        *   `- [ ] Display section names. Draggable start/end handles.`
-    *   `- [ ] Zoom/Pan controls (buttons `+`/`-`, scroll wheel). Smooth scaling. Time ruler.`
-    *   `- [ ] Interactions: Click-to-seek. Alt/Cmd+click to add custom marker. Click to select section/marker for editing in `AudioDrivenControlPanel.svelte`.`
-
-    **B.2. Center-Left: Video Preview Area (`VideoPreview.svelte`)**
-    *   `- [ ] (As before) Implement `VideoPreview.svelte`. Prominent, fixed aspect ratio (16:9). WebGL2 `<canvas>`. Simple border.`
-
-    **B.3. Center-Left: Main Interactive Video Timeline (`VideoTimeline.svelte`)**
-    *   `- [ ] **Design inspired by Wavtool's MIDI sequencer/piano roll area.** Horizontally aligned with `WaveformDisplay.svelte`'s time axis, sharing zoom/pan context.`
-    *   `- [ ] Render video clip instances as **solid blocks** on a single track (MVP).
-        *   `- [ ] Block color: Default dark shade, or derived from video thumbnail (advanced).`
-        *   `- [ ] Display clip name or a miniature thumbnail within the block if space allows.`
-        *   `- [ ] Block length = clip duration on timeline.`
-        *   `- [ ] **Selected clip instance: Bright neon accent #1 border.**`
-        *   `- [ ] **Currently playing clip instance: Bright neon accent #2 thicker outline or overlay.** (As per UI/UX spec).`
-    *   `- [ ] Drag & Drop from `AssetLibrary.svelte` to place clips.`
-    *   `- [ ] Drag existing clips to reorder. Drag edges to trim (visual handles).`
-    *   `- [ ] Keyboard: Select, Delete. Context menu (right-click) for "Delete", etc.`
-    *   `- [ ] Time ruler directly above this timeline, synced with master waveform ruler.`
-
-    **B.4. Left Side Panel (Collapsible): `AssetLibrary.svelte`**
-    *   `- [ ] (Largely as before) Implement `AssetLibrary.svelte`. Dark panel.`
-    *   `- [ ] List view: Video thumbnail, filename. Subtle hover. Selected state: neon highlight.`
-    *   `- [ ] Items draggable to `VideoTimeline.svelte`. Styled vertical scrollbar.`
-    *   `- [ ] (New) Section for "Generated Content" (Post-MVP): For AI-generated videos/transitions. Initially a placeholder: "AI Generations (Coming Soon)".`
-
-    **B.5. Right Side Panel (Collapsible): `AudioDrivenControlPanel.svelte`**
-    *   `- [ ] **Design inspired by Wavtool's "AI & Skills" / "Composer" panel.** Context-sensitive content.`
-    *   `- [ ] Overall structure:
-        *   `- [ ] Panel Title (e.g., "Audio-Visual Controls" or "Sync Director").`
-        *   `- [ ] Main content area that changes based on selection (no selection, audio section selected, specific tool active).`
-        *   `- [ ] Possibly a top-level list/menu for major functions if not purely context-driven (similar to Wavtool's "AI & Skills" list).`
-    *   `- [ ] **Default/No Selection State:**
-        *   `- [ ] Buttons: "Detect Master Beats," "Isolate Stems," "Detect Master Transients." (Styled like Wavtool's list items or compact buttons).`
-        *   `- [ ] "Manual Marker Mode" toggle/button.`
-    *   `- [ ] **When an Audio Section is Selected (on `WaveformDisplay.svelte`):**
-        *   `- [ ] Display Section Name (editable input field).`
-        *   `- [ ] **Synchronization Rules Sub-panel:**
-            *   `- [ ] Dropdown: "Driving Audio Feature" (Master Beats, Vocal Transients, etc.). Styled like Wavtool's dropdowns if applicable (dark, clear text, neon accent for arrow).`
-            *   `- [ ] For "Clip Switching": Input "Switch every Nth marker."`
-            *   `- [ ] For "Speed Ramps":
-                *   `- [ ] Dropdown: "Audio Characteristic Source" (e.g., Vocal Amplitude).`
-                *   `- [ ] Sliders: "Min Speed," "Max Speed." (Styled sliders: dark track, neon accent thumb/fill).`
-                *   `- [ ] Toggle/Checkbox: "Invert Mapping."`
-        *   `- [ ] **Effect Rules Sub-panel:**
-            *   `- [ ] Dropdown: "Select Visual Effect" (e.g., Color Filter).`
-            *   `- [ ] Dropdown: "Modulate By" (Audio driver: Marker Pulses, Continuous Characteristic).`
-            *   `- [ ] Sliders/Inputs for effect params (e.g., "Intensity," "Color Hue"). Styled consistently.`
-            *   `- [ ] Sliders for modulation mapping (e.g., "Min/Max Effect Value," "Attack/Decay" for pulses).`
-    *   `- [ ] **When "Manual Marker Mode" is Active / Marker Selected:**
-        *   `- [ ] "Add Marker at Playhead" button.`
-        *   `- [ ] "Delete Selected Marker" button.`
-        *   `- [ ] Input for selected marker's name/label.`
-    *   `- [ ] **Stem Controls (if stems isolated):**
-        *   `- [ ] List of available stems (e.g., "Vocals," "Drums").`
-        *   `- [ ] Per stem: "Solo" button (toggle, neon active), "Detect Transients on Stem" button.`
-    *   `- [ ] (New - for future video generation, inspired by "Compose with AI"): Placeholder section "AI Video Tools":
-        *   `- [ ] Button: "Import Additional Video Clips".`
-        *   `- [ ] (Post-MVP) "Generate Transition," "Group Selected Clips."`
-    *   `- [ ] All UI elements (buttons, dropdowns, sliders, inputs) must have a consistent dark theme style with neon accents. Prioritize clarity and ease of use.`
-
-    **B.6. Bottom Bar: Master Playback Controls (`PlaybackControls.svelte`)**
-    *   `- [ ] (Largely as before) Implement `PlaybackControls.svelte`.
-    *   `- [ ] Placement: Bottom-center of the application window, similar to many DAWs.`
-    *   `- [ ] Buttons: Play (icon changes to Pause), Stop. Clear standard icons. Dark, neon accents.`
-    *   `- [ ] (Optional MVP) Loop toggle. Time display (current time / total duration).`
-    *   `- [ ] Keyboard: Spacebar for Play/Pause.`
-
-### C. [EXPORT] Mode: `ExportView.svelte`
-*   `- [ ] (As before) Implement `ExportView.svelte`. Simple, dark theme.`
-*   `- [ ] "Start Export" button. Progress display (text status, progress bar with neon accent).`
-*   `- [ ] Optional filename input. "Export Complete! Download" link/button.`
-
-### D. `AppEntryHubView.svelte`
-*   `- [ ] (As before) Implement `AppEntryHubView.svelte`. Welcoming screen.`
-*   `- [ ] "Create New Project" button (large, neon accent). (Future: recent projects). Dark theme.`
-
-### E. `ApplicationSettingsView.svelte` (Minimal MVP)
-*   `- [ ] (As before) Implement `ApplicationSettingsView.svelte`. Placeholder "Settings (Coming Soon)". Dark theme.`
-
-## III. General UI Components & UX Patterns (Reiteration with Wavtool Influence)
-
-### A. Modals / Dialogs
-*   `- [ ] Standard modal: Dark overlay, dark panel, clear title, content, action buttons (neon for primary). Keyboard accessible.`
-
-### B. Tooltips
-*   `- [ ] Standard tooltip: Small, dark, light text, subtle animation. For icons/controls.`
-
-### C. Loading Indicators
-*   `- [ ] Small neon spinner (inline). Full-screen dark overlay loader for blocking ops.`
-
-### D. Form Controls (Inputs, Sliders, Dropdowns)
-*   `- [ ] Design consistent styling for all form controls:
-    *   `- [ ] **Inputs (text, number):** Dark background, light text, neon accent border on focus.`
-    *   `- [ ] **Sliders:** Dark track, neon accent thumb and active track portion.`
-    *   `- [ ] **Dropdowns (`<select>` or custom):** Dark background, light text, neon accent for dropdown arrow/highlight. Options list also dark themed.`
-    *   `- [ ] **Buttons:** Clear hierarchy (primary with neon fill/border, secondary with neon outline or subtle dark fill). Consistent padding and font size.`
-    *   `- [ ] **Checkboxes/Toggles:** Custom styled to fit dark theme, neon accent for checked/active state.`
-
-### E. Error Handling Display
-*   `- [ ] Inline error messages (neon red/orange text). Global toast notifications (dark, appropriate icon, neon accents).`
-
-### F. Accessibility (AX) - General Pass
-*   `- [ ] (As before) Keyboard navigable, clear focus states (neon accent outline), ARIA attributes.`
-*   `- [ ] Color contrast checks remain critical.`
-
-### G. Responsiveness & Cross-Browser (Desktop MVP)
-*   `- [ ] (As before) Graceful adaptation to common desktop resolutions. "Best viewed on desktop" message for smaller screens.`
-*   `- [ ] Basic visual checks on latest Chrome, Firefox, Edge, Safari (desktop).`
+**Key Design Influences:**
+- Wavtool's "AI & Skills" panel → `AudioDrivenControlPanel.svelte`
+- Wavtool's MIDI sequencer/piano roll → `VideoTimeline.svelte`
+- Professional DAW layouts for multi-panel workspace organization
 
 ---
-This refined checklist should provide an even clearer path, drawing inspiration from Wavtool's effective UI patterns while tailoring them to Artivus Engine's unique audio-visual synchronization goals. The focus on the right-hand panel as a dynamic control center and the bottom timeline as a video block sequencer are key adaptations.
+
+## I. Global Foundation & Brand Identity
+
+### A. Core Color System & Brand Variables (`src/app.css`)
+*   `- [ ] Refine the existing CSS custom properties based on established rust-peaks identity:
+    *   `- [ ] **Primary Backgrounds:** 
+        *   `--bg-primary: #0a0a0a` (deepest background - main canvas)
+        *   `--bg-secondary: #151515` (panel backgrounds)
+        *   `--bg-tertiary: #202020` (elevated elements, cards)
+        *   `--bg-elevated: #252525` (modal overlays, dropdowns)`
+    *   `- [ ] **Text Hierarchy:**
+        *   `--text-primary: #f0f0f0` (primary content, headings)
+        *   `--text-secondary: #b0b0b0` (secondary content, labels)
+        *   `--text-dimmed: #808080` (disabled, subtle text)`
+    *   `- [ ] **Rust-Peaks Neon Accent System:**
+        *   `--neon-accent-1: #00ff88` (primary interactions, active states, beat markers)
+        *   `--neon-accent-2: #ff6b35` (secondary highlights, transient markers, "rust" element)
+        *   `--neon-accent-3: #00d4ff` (tertiary accents, special markers)
+        *   `--neon-accent-warm: #ffaa3d` (warm rust tone for branding elements)`
+    *   `- [ ] **Semantic State Colors:**
+        *   `--color-error: #ff5555` (errors, warnings)
+        *   `--color-success: #55ff55` (success states, confirmations)
+        *   `--color-info: #3d9eff` (information, help text)`
+*   `- [ ] **Spacing & Layout System:** Enhance existing spacing variables for consistent rhythm.`
+*   `- [ ] **Typography System:** Define font-weight scale (400, 500, 600, 700) and size scale optimized for interface elements.`
+*   `- [ ] **Animation & Transition System:** Define performance-optimized transition durations and easing functions.`
+
+### B. Advanced Styling Systems
+*   `- [ ] **Button Component System:** Create comprehensive button variants (primary, secondary, accent, ghost, icon-only) with consistent hover/active/disabled states.`
+*   `- [ ] **Form Control System:** Unified styling for inputs, selects, sliders, checkboxes, toggles with neon accent focus states.`
+*   `- [ ] **Panel & Layout System:** Define elevation levels, borders, and panel spacing patterns.`
+*   `- [ ] **Typography Scale:** Implement heading hierarchy and text styles for UI elements.`
+
+### C. Application Shell Architecture (`src/routes/+layout.svelte`)
+*   `- [ ] Implement SvelteKit layout structure with proper route organization:
+    *   `- [ ] Main layout component handling global state and navigation
+    *   `- [ ] Route-based view switching for [SETUP], [EDIT], [EXPORT] modes
+    *   `- [ ] Persistent top navigation and global UI elements`
+*   `- [ ] **Responsive Layout Grid:** CSS Grid or Flexbox system for the main workspace panels with proper collapsing behavior.`
+*   `- [ ] **Global State Management:** Svelte stores for UI state, audio analysis results, project data, and user preferences.`
+
+## II. Navigation & Core Shell Components
+
+### A. Top Navigation Bar (`src/lib/components/TopBar.svelte`)
+*   `- [ ] **Brand Identity Section:**
+    *   `- [ ] "ARTIVUS ENGINE" wordmark with rust-peaks styling (gradient text or accent underline)
+    *   `- [ ] Optional small logo/icon element incorporating rust-peaks visual identity`
+*   `- [ ] **Mode Switcher (Center Focus):**
+    *   `- [ ] Clean tab design inspired by Wavtool's navigation
+    *   `- [ ] Tab states: Default (text-secondary), Hover (text-primary + subtle bg), Active (neon-accent-1 underline + text-primary)
+    *   `- [ ] Smooth transition animations between modes
+    *   `- [ ] Keyboard navigation support (arrow keys, Enter)`
+*   `- [ ] **Global Actions (Right Aligned):**
+    *   `- [ ] Icon buttons for Project Home, Settings, User Account (minimal MVP set)
+    *   `- [ ] Tooltips with consistent styling and positioning
+    *   `- [ ] Proper ARIA labels and keyboard support`
+*   `- [ ] **Accessibility & Interaction:**
+    *   `- [ ] Semantic HTML with proper ARIA navigation role
+    *   `- [ ] Keyboard shortcuts (Cmd/Ctrl + 1/2/3 for mode switching)
+    *   `- [ ] Focus management and visual focus indicators`
+
+### B. Global State Management (`src/lib/stores/`)
+*   `- [ ] **UI State Store (`uiStore.ts`):**
+    *   `- [ ] Current app mode (setup/edit/export)
+    *   `- [ ] Panel visibility states (left/right panel collapsed)
+    *   `- [ ] Modal/dialog state management
+    *   `- [ ] Loading states and progress tracking`
+*   `- [ ] **Project Store (`projectStore.ts`):**
+    *   `- [ ] Media assets (audio files, video clips)
+    *   `- [ ] Audio analysis results (markers, stems, sections)
+    *   `- [ ] Timeline state and synchronization settings`
+*   `- [ ] **Audio Engine Store (`audioEngineStore.ts`):**
+    *   `- [ ] Playback state, current time, tempo/pitch settings
+    *   `- [ ] Audio analysis progress and results
+    *   `- [ ] Real-time audio manipulation parameters`
+
+## III. Mode-Specific Views & Workflows
+
+### A. [SETUP] Mode: Project Initialization (`src/routes/setup/+page.svelte`)
+*   `- [ ] **Welcome & Project Creation Interface:**
+    *   `- [ ] Clean, centered layout emphasizing simplicity
+    *   `- [ ] "Create New Project" primary action with rust-peaks accent styling
+    *   `- [ ] Optional recent projects list (post-MVP) with thumbnail previews`
+*   `- [ ] **Media Upload Workflow:**
+    *   `- [ ] **Master Audio Upload:** Large dropzone with music note icon, drag-and-drop feedback, progress indicators
+    *   `- [ ] **Video Clips Upload:** Similar interface with video icon, multiple file support
+    *   `- [ ] **Upload Progress:** Elegant progress bars with neon accent fills and percentage display
+    *   `- [ ] **Asset Preview:** Thumbnails and basic metadata display once uploaded`
+*   `- [ ] **Transition to Edit Mode:**
+    *   `- [ ] Clear call-to-action once media is uploaded
+    *   `- [ ] Automatic validation of required assets before enabling [EDIT] mode access`
+
+### B. [EDIT] Mode: Main Workspace (`src/routes/edit/+page.svelte`)
+
+#### B.1. Layout Architecture
+*   `- [ ] **CSS Grid Layout System:** Define precise grid areas for optimal space utilization:
+    ```css
+    .main-workspace {
+      display: grid;
+      grid-template-areas: 
+        "asset-panel waveform-display control-panel"
+        "asset-panel video-preview control-panel" 
+        "asset-panel video-timeline control-panel"
+        "playback-controls playback-controls playback-controls";
+      grid-template-columns: 280px 1fr 320px;
+      grid-template-rows: 120px 1fr 180px 80px;
+    }
+    ```
+*   `- [ ] **Panel Collapse System:** Smooth animations, preserved proportions, responsive breakpoints.`
+*   `- [ ] **Splitter/Resizer Components:** User-adjustable panel widths with constraints and snap behaviors.`
+
+#### B.2. Master Waveform Display (`src/lib/components/WaveformDisplay.svelte`)
+*   `- [ ] **Canvas Rendering Engine:**
+    *   `- [ ] High-DPI support with proper scaling
+    *   `- [ ] Optimized drawing for real-time updates during playback
+    *   `- [ ] Waveform styling: clean amplitude visualization in light gray (#b0b0b0) against dark background`
+*   `- [ ] **Marker System Visualization:**
+    *   `- [ ] **Beat Markers:** Vertical lines in neon-accent-1 (#00ff88) with consistent height
+    *   `- [ ] **Transient Markers:** Diamond shapes in neon-accent-2 (#ff6b35) positioned above waveform
+    *   `- [ ] **Stem-Specific Markers:** Color-coded by stem type (predefined palette)
+    *   `- [ ] **User Markers:** Draggable handles with unique visual styling and labels
+    *   `- [ ] **Marker Interaction:** Click-to-select, drag-to-move, context menus for properties`
+*   `- [ ] **Audio Sections Interface:**
+    *   `- [ ] Semi-transparent colored overlays defining sections (verse, chorus, etc.)
+    *   `- [ ] Section name labels with inline editing capability
+    *   `- [ ] Draggable section boundaries with snap-to-marker behavior
+    *   `- [ ] Section selection highlighting for control panel integration`
+*   `- [ ] **Navigation & Zoom Controls:**
+    *   `- [ ] Smooth zoom with mouse wheel and +/- buttons
+    *   `- [ ] Pan with middle-mouse drag or scroll
+    *   `- [ ] Time ruler with appropriate time divisions
+    *   `- [ ] Playhead synchronization with audio playback`
+
+#### B.3. Video Preview Area (`src/lib/components/VideoPreview.svelte`)
+*   `- [ ] **WebGL2 Rendering Pipeline:**
+    *   `- [ ] Canvas initialization with proper context settings
+    *   `- [ ] Video texture rendering with frame synchronization
+    *   `- [ ] Shader pipeline for real-time effects application
+    *   `- [ ] Aspect ratio preservation (16:9) with letterboxing if needed`
+*   `- [ ] **Preview Controls Overlay:**
+    *   `- [ ] Minimal, non-intrusive controls that appear on hover
+    *   `- [ ] Fullscreen toggle, playback state indicator
+    *   `- [ ] Effect preview toggles and intensity previews`
+
+#### B.4. Video Timeline (`src/lib/components/VideoTimeline.svelte`)
+*   `- [ ] **Timeline Architecture (Wavtool-Inspired):**
+    *   `- [ ] Single track layout for MVP with potential for multi-track expansion
+    *   `- [ ] Time-aligned with master waveform display (shared zoom/pan context)
+    *   `- [ ] Clip blocks with rounded corners and subtle shadows for depth`
+*   `- [ ] **Video Clip Representation:**
+    *   `- [ ] **Default State:** Dark block (#2a2a2a) with clip name overlay
+    *   `- [ ] **Selected State:** Bright neon-accent-1 (#00ff88) border with thicker outline
+    *   `- [ ] **Playing State:** Pulsing neon-accent-2 (#ff6b35) outline with animation
+    *   `- [ ] **Thumbnail Integration:** Small preview thumbnails within blocks when space allows`
+*   `- [ ] **Interaction Behaviors:**
+    *   `- [ ] Drag-and-drop from asset library with visual feedback
+    *   `- [ ] Click-to-select with multi-select capability (Cmd/Ctrl+click)
+    *   `- [ ] Drag-to-reorder with insertion indicators
+    *   `- [ ] Edge handles for trimming with cursor changes
+    *   `- [ ] Context menu (right-click) with common actions`
+*   `- [ ] **Timeline Features:**
+    *   `- [ ] Snap-to-marker behavior during dragging
+    *   `- [ ] Time ruler synchronization with waveform display
+    *   `- [ ] Playhead visualization matching waveform display`
+
+#### B.5. Asset Library Panel (`src/lib/components/AssetLibrary.svelte`)
+*   `- [ ] **Panel Structure:**
+    *   `- [ ] Collapsible with smooth slide animation
+    *   `- [ ] Header with panel title and collapse toggle
+    *   `- [ ] Scrollable content area with custom scrollbar styling`
+*   `- [ ] **Asset Display:**
+    *   `- [ ] Video thumbnails with overlay information (duration, resolution)
+    *   `- [ ] List or grid view toggle option
+    *   `- [ ] Hover effects with subtle scaling and brightness increase
+    *   `- [ ] Selection state with neon accent border`
+*   `- [ ] **Drag-and-Drop Integration:**
+    *   `- [ ] Visual drag feedback with semi-transparent preview
+    *   `- [ ] Drop zone indicators on timeline
+    *   `- [ ] Touch/mobile considerations for drag interactions`
+*   `- [ ] **Future Content Sections:**
+    *   `- [ ] "AI Generations" placeholder section with coming soon styling
+    *   `- [ ] Import additional content button with consistent button styling`
+
+#### B.6. Audio-Driven Control Panel (`src/lib/components/AudioDrivenControlPanel.svelte`)
+*   `- [ ] **Panel Architecture (Wavtool "AI & Skills" Inspired):**
+    *   `- [ ] Context-sensitive content that adapts to current selection
+    *   `- [ ] Smooth transitions between different states
+    *   `- [ ] Clear visual hierarchy with section dividers`
+*   `- [ ] **Default State Interface:**
+    *   `- [ ] **Audio Analysis Tools:** Buttons for "Detect Master Beats," "Isolate Stems," "Detect Transients"
+    *   `- [ ] Button styling: Secondary style with neon accent hover states
+    *   `- [ ] Progress indicators for analysis operations
+    *   `- [ ] "Manual Marker Mode" toggle with clear active/inactive states`
+*   `- [ ] **Audio Section Selected State:**
+    *   `- [ ] **Section Properties:** Editable section name with inline editing
+    *   `- [ ] **Synchronization Rules Panel:**
+        *   `- [ ] Dropdown for "Driving Audio Feature" with custom styling
+        *   `- [ ] Numeric inputs for clip switching rules
+        *   `- [ ] Speed ramp controls with min/max sliders
+        *   `- [ ] Invert mapping checkbox with custom styling`
+    *   `- [ ] **Effect Rules Panel:**
+        *   `- [ ] Effect selection dropdown with previews
+        *   `- [ ] Modulation source selection
+        *   `- [ ] Real-time parameter sliders with neon accent tracks
+        *   `- [ ] Attack/decay controls for pulse-based modulation`
+*   `- [ ] **Stem Controls (When Available):**
+    *   `- [ ] List of isolated stems with individual controls
+    *   `- [ ] Solo buttons with neon active states
+    *   `- [ ] Per-stem transient detection controls
+    *   `- [ ] Volume/mute controls for stem preview`
+*   `- [ ] **Manual Marker Mode:**
+    *   `- [ ] Add marker at playhead button
+    *   `- [ ] Delete selected marker button
+    *   `- [ ] Marker properties panel (name, type, color)
+    *   `- [ ] Marker list with selection and editing capabilities`
+
+#### B.7. Master Playback Controls (`src/lib/components/PlaybackControls.svelte`)
+*   `- [ ] **Control Layout:**
+    *   `- [ ] Centered horizontal layout with consistent spacing
+    *   `- [ ] Primary controls: Play/Pause (with state icon change), Stop
+    *   `- [ ] Secondary controls: Loop toggle, tempo/pitch controls`
+*   `- [ ] **Visual Design:**
+    *   `- [ ] Larger, more prominent play/pause button with neon accent
+    *   `- [ ] Icon consistency with standard media player conventions
+    *   `- [ ] Hover states with subtle glow effects`
+*   `- [ ] **Advanced Controls:**
+    *   `- [ ] Time display (current/total) with monospace font
+    *   `- [ ] Real-time tempo slider with BPM display
+    *   `- [ ] Real-time pitch slider with semitone indicators
+    *   `- [ ] Master volume control with visual level indication`
+*   `- [ ] **Keyboard Integration:**
+    *   `- [ ] Spacebar for play/pause with visual feedback
+    *   `- [ ] Arrow keys for seeking (fine/coarse modes)
+    *   `- [ ] Shortcut hints in tooltips`
+
+### C. [EXPORT] Mode: Project Output (`src/routes/export/+page.svelte`)
+*   `- [ ] **Export Configuration Interface:**
+    *   `- [ ] Clean, focused layout emphasizing the export process
+    *   `- [ ] Export format selection with quality presets
+    *   `- [ ] Filename input with validation and suggestions`
+*   `- [ ] **Progress & Status Display:**
+    *   `- [ ] Large, prominent progress bar with neon accent fill
+    *   `- [ ] Detailed status text (processing audio, rendering video, etc.)
+    *   `- [ ] Time remaining estimation and cancel option`
+*   `- [ ] **Export Completion:**
+    *   `- [ ] Success state with download button
+    *   `- [ ] File size and quality information
+    *   `- [ ] Social sharing options (post-MVP)`
+
+## IV. Component System & Design Patterns
+
+### A. Interactive Elements
+*   `- [ ] **Button Hierarchy:**
+    *   `- [ ] Primary: Neon accent background, dark text
+    *   `- [ ] Secondary: Transparent background, neon accent border
+    *   `- [ ] Ghost: No background, neon accent text, hover background
+    *   `- [ ] Icon-only: Minimal padding, consistent size`
+*   `- [ ] **Form Controls:**
+    *   `- [ ] Custom slider components with neon accent tracks
+    *   `- [ ] Styled dropdowns with smooth animations
+    *   `- [ ] Toggle switches with clear on/off states
+    *   `- [ ] Input validation with inline error messaging`
+
+### B. Feedback & Communication
+*   `- [ ] **Loading States:**
+    *   `- [ ] Skeleton loaders for content areas
+    *   `- [ ] Spinner animations with neon accent colors
+    *   `- [ ] Progress indicators for long-running operations`
+*   `- [ ] **Toast Notifications:**
+    *   `- [ ] Consistent positioning and animation
+    *   `- [ ] Icon and color coding for different message types
+    *   `- [ ] Auto-dismiss with hover-to-persist behavior`
+*   `- [ ] **Modal Dialogs:**
+    *   `- [ ] Dark overlay with proper backdrop dismissal
+    *   `- [ ] Consistent sizing and positioning
+    *   `- [ ] Focus management and keyboard navigation`
+
+### C. Accessibility & Usability
+*   `- [ ] **Keyboard Navigation:**
+    *   `- [ ] Tab order optimization for workflow efficiency
+    *   `- [ ] Keyboard shortcuts for frequent actions
+    *   `- [ ] Visual focus indicators with neon accent styling`
+*   `- [ ] **Screen Reader Support:**
+    *   `- [ ] Semantic HTML structure with proper ARIA labels
+    *   `- [ ] Live regions for dynamic content updates
+    *   `- [ ] Alternative text for visual elements`
+*   `- [ ] **Color & Contrast:**
+    *   `- [ ] WCAG AA compliance for all text/background combinations
+    *   `- [ ] High contrast mode consideration
+    *   `- [ ] Color-blind friendly marker and state indicators`
+
+### D. Performance & Optimization
+*   `- [ ] **Rendering Optimization:**
+    *   `- [ ] Canvas rendering with requestAnimationFrame
+    *   `- [ ] Virtual scrolling for large asset lists
+    *   `- [ ] Debounced user input handling`
+*   `- [ ] **Asset Management:**
+    *   `- [ ] Lazy loading for video thumbnails
+    *   `- [ ] Efficient memory management for audio analysis
+    *   `- [ ] Progressive enhancement for advanced features`
+
+## V. Cross-Browser & Platform Considerations
+
+### A. Browser Compatibility
+*   `- [ ] **WebGL2 Support Detection:** Graceful fallback messaging for unsupported browsers.`
+*   `- [ ] **WebCodecs Polyfills:** Consider fallback strategies for older browsers.`
+*   `- [ ] **Audio Context Handling:** Proper user gesture requirements for audio playback.`
+
+### B. Performance Targets
+*   `- [ ] **Frame Rate:** Maintain 60fps for UI animations, 30fps minimum for video preview.`
+*   `- [ ] **Audio Latency:** <100ms for real-time audio manipulation feedback.`
+*   `- [ ] **Load Time:** Initial application load under 3 seconds on typical connection.`
+
+### C. Responsive Considerations
+*   `- [ ] **Desktop Optimization:** Primary focus on 1920x1080 and 1440p displays.`
+*   `- [ ] **Minimum Resolution:** Graceful degradation to 1366x768 with panel adjustments.`
+*   `- [ ] **Mobile Awareness:** Clear messaging about desktop-optimized experience.`
+
+---
+
+**Implementation Priority:** Focus on core [EDIT] mode components first, establishing the foundational waveform display, video timeline, and audio-driven control panel as the heart of the user experience. Build out [SETUP] and [EXPORT] modes as the core functionality stabilizes.
+
+**Quality Assurance:** Each component should be tested for keyboard accessibility, color contrast compliance, and cross-browser compatibility before integration into the main application flow. 
