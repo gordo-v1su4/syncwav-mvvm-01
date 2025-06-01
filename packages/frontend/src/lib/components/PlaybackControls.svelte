@@ -45,34 +45,120 @@
 
 <div class="playback-controls">
   <div class="playback-main">
-    <button class="playback-btn secondary" on:click={handleSkipBack} disabled={!$audioEngineStore.audioBuffer} title="Skip back 10 seconds">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="19 20 9 12 19 4 19 20"></polygon>
-        <line x1="5" y1="19" x2="5" y2="5"></line>
+    <button 
+      class="playback-btn secondary" 
+      on:click={handleSkipBack} 
+      disabled={!$audioEngineStore.audioBuffer} 
+      title="Skip back 10 seconds"
+      aria-label="Skip back 10 seconds"
+    >
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="18" 
+        height="18" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <polygon points="19 20 9 12 19 4 19 20" />
+        <line x1="5" y1="19" x2="5" y2="5" />
       </svg>
+      <span class="sr-only">Skip back 10 seconds</span>
     </button>
-    <button class="playback-btn primary" on:click={handlePlay} disabled={!$audioEngineStore.audioBuffer} title={$audioEngineStore.isPlaying ? "Pause" : "Play"}>
+    
+    <button 
+      class="playback-btn primary" 
+      on:click={handlePlay} 
+      disabled={!$audioEngineStore.audioBuffer} 
+      title={$audioEngineStore.isPlaying ? 'Pause' : 'Play'}
+      aria-label={$audioEngineStore.isPlaying ? 'Pause' : 'Play'}
+    >
       {#if $audioEngineStore.isPlaying}
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="6" y="4" width="4" height="16"></rect>
-          <rect x="14" y="4" width="4" height="16"></rect>
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="20" 
+          height="20" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="6" y="4" width="4" height="16" />
+          <rect x="14" y="4" width="4" height="16" />
         </svg>
       {:else}
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="20" 
+          height="20" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polygon points="5 3 19 12 5 21 5 3" />
         </svg>
       {/if}
+      <span class="sr-only">{$audioEngineStore.isPlaying ? 'Pause' : 'Play'}</span>
     </button>
-    <button class="playback-btn secondary" on:click={handleStop} disabled={!$audioEngineStore.audioBuffer} title="Stop">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    
+    <button 
+      class="playback-btn secondary" 
+      on:click={handleStop} 
+      disabled={!$audioEngineStore.audioBuffer} 
+      title="Stop"
+      aria-label="Stop"
+    >
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="16" 
+        height="16" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
       </svg>
+      <span class="sr-only">Stop</span>
     </button>
-    <button class="playback-btn secondary" on:click={handleSkipForward} disabled={!$audioEngineStore.audioBuffer} title="Skip forward 10 seconds">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="5 4 15 12 5 20 5 4"></polygon>
-        <line x1="19" y1="5" x2="19" y2="19"></line>
+    
+    <button 
+      class="playback-btn secondary" 
+      on:click={handleSkipForward} 
+      disabled={!$audioEngineStore.audioBuffer} 
+      title="Skip forward 10 seconds"
+      aria-label="Skip forward 10 seconds"
+    >
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="18" 
+        height="18" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <polygon points="5 4 15 12 5 20 5 4" />
+        <line x1="19" y1="5" x2="19" y2="19" />
       </svg>
+      <span class="sr-only">Skip forward 10 seconds</span>
     </button>
     <button 
       class="playback-btn secondary loop-btn" 
@@ -80,13 +166,27 @@
       on:click={handleLoop} 
       disabled={!$audioEngineStore.audioBuffer}
       title="Toggle loop"
+      aria-label="Toggle loop"
+      aria-pressed={$audioEngineStore.isLooping}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 1l4 4-4 4"></path>
-        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-        <path d="M7 23l-4-4 4-4"></path>
-        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="16" 
+        height="16" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M17 1l4 4-4 4" />
+        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+        <path d="M7 23l-4-4 4-4" />
+        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
       </svg>
+      <span class="sr-only">Toggle loop</span>
     </button>
   </div>
 
@@ -113,6 +213,7 @@
           class="volume-slider"
           on:input={handleVolumeChange}
           disabled={!$audioEngineStore.audioBuffer}
+          aria-label="Volume"
         >
       </div>
     </div>
@@ -120,6 +221,19 @@
 </div>
 
 <style>
+  /* Screen reader only utility class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
   .playback-controls {
     display: flex;
     align-items: center;

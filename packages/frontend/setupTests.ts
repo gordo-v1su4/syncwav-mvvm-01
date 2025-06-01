@@ -1,6 +1,6 @@
 // Setup for Vitest testing environment
 import { expect, vi } from 'vitest';
-import '@testing-library/jest-dom'; // Import the package without accessing matchers directly
+import '@testing-library/jest-dom/vitest'; // Use the Vitest-specific entrypoint for matchers
 
 // Mock window properties and browser APIs that might be used in tests
 Object.defineProperty(global, 'IntersectionObserver', {

@@ -1,5 +1,5 @@
-import { render } from '@testing-library/svelte';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render } from '@testing-library/svelte/svelte5';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import WaveformDisplay from '../WaveformDisplay.svelte';
 import { audioEngineStore } from '$lib/stores/audioEngineStore';
 
@@ -65,22 +65,27 @@ describe('WaveformDisplay', () => {
     }));
   });
 
-  it('renders the waveform component with empty state when no audio is provided', () => {
-    const { getByText } = render(WaveformDisplay);
-    
-    expect(getByText('No Audio Loaded')).toBeTruthy();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('displays zoom indicator', () => {
-    const { getByText } = render(WaveformDisplay);
+  it('renders the waveform component with empty state when no audio is provided', async () => {
+    const { findByText } = render(WaveformDisplay);
     
-    expect(getByText('Zoom: 1.0x')).toBeTruthy();
+    expect(await findByText('No Audio Loaded')).toBeTruthy();
   });
 
-  it('sets up the canvas when mounted', () => {
+  it('displays zoom indicator', async () => {
+    const { findByText } = render(WaveformDisplay);
+    
+    expect(await findByText('Zoom: 1.0x')).toBeTruthy();
+  });
+
+  it('sets up the canvas when mounted', async () => {
     render(WaveformDisplay);
-    
-    expect(HTMLCanvasElement.prototype.getContext).toHaveBeenCalled();
+    // Wait a tick for Svelte's onMount
+    await Promise.resolve();
+    expect(mockContext.clearRect).toHaveBeenCalled();
   });
 
   // This test would require more complex mocking of AudioBuffer and canvas APIs

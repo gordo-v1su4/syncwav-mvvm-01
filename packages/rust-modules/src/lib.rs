@@ -68,7 +68,7 @@ pub fn detect_transients(audio_data: &[f32], sample_rate: f32) -> Vec<f64> {
 
 // Placeholder for stem separation function  
 #[wasm_bindgen]
- pub fn separate_stems(audio_data: &[f32], sample_rate: f32) -> js_sys::Array {
+pub fn separate_stems(audio_data: &[f32], sample_rate: f32) -> js_sys::Array {
     let result = js_sys::Array::new();
     
     if audio_data.is_empty() {
@@ -92,11 +92,54 @@ pub fn detect_transients(audio_data: &[f32], sample_rate: f32) -> Vec<f64> {
      result.push(&drums);
      
      result
- }
+}
+
+// Fast, DAW-grade waveform peak extraction for WASM
+#[wasm_bindgen]
+pub fn extract_waveform_peaks(audio_data: &[f32], samples_per_pixel: usize) -> js_sys::Array {
+    let len = audio_data.len();
+    let peaks = js_sys::Array::new();
+    if len == 0 || samples_per_pixel == 0 {
+        console_log!("extract_waveform_peaks: Invalid input: len={}, spp={}", len, samples_per_pixel);
+        return peaks;
+    }
+    let mut i = 0;
+    while i < len {
+        let mut min = f32::MAX;
+        let mut max = f32::MIN;
+        let end = usize::min(i + samples_per_pixel, len);
+        for &sample in &audio_data[i..end] {
+            if sample < min { min = sample; }
+            if sample > max { max = sample; }
+        }
+        let peak = js_sys::Object::new();
+        js_sys::Reflect::set(&peak, &"min".into(), &min.into()).unwrap();
+        js_sys::Reflect::set(&peak, &"max".into(), &max.into()).unwrap();
+        peaks.push(&peak);
+        i += samples_per_pixel;
+    }
+    peaks
+}
+
+// Simple peak amplitude waveform generator for Float32Array input (downsampled max-abs)
+#[wasm_bindgen]
+pub fn generate_waveform(samples: &js_sys::Float32Array, downsample_factor: usize) -> js_sys::Float32Array {
+    let samples_vec = samples.to_vec();
+    let mut peaks = Vec::new();
+    for chunk in samples_vec.chunks(downsample_factor) {
+        let max: f32 = chunk.iter().fold(0.0, |acc, &x| acc.max(x.abs()));
+        peaks.push(max);
+    }
+    js_sys::Float32Array::from(peaks.as_slice())
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Only import wasm_bindgen_test if targeting wasm32
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
     fn test_greet() {
@@ -149,5 +192,13 @@ mod tests {
             assert_eq!(vocals.get_index(i as u32), audio_data[i]);
             assert_eq!(drums.get_index(i as u32), audio_data[i]);
         }
+    }
+
+    // Sample wasm_bindgen_test for browser/wasm testing
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen_test]
+    fn test_wasm_bindgen_sample() {
+        // This test always passes
+        assert_eq!(1 + 1, 2);
     }
 }

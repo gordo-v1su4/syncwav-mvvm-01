@@ -73,6 +73,65 @@ export class AudioService {
       throw error;
     }
   }
+  
+  /**
+   * Load audio from a URL (e.g., backend path)
+   */
+  async loadFromUrl(url: string): Promise<void> {
+    console.log("AudioService.loadFromUrl called with:", url);
+    
+    if (!this.audioContext || !this.isInitialized) {
+      console.error("AudioService not initialized");
+      throw new Error('Audio service not initialized');
+    }
+
+    try {
+      console.log("Stopping any current playback");
+      // Stop any currently playing audio
+      this.stop();
+
+      console.log("Fetching audio data from URL");
+      // Fetch the audio data
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`Fetch failed with status: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch audio: ${response.statusText}`);
+      }
+      
+      console.log("Converting response to ArrayBuffer");
+      const arrayBuffer = await response.arrayBuffer();
+      console.log("ArrayBuffer size:", arrayBuffer.byteLength);
+      
+      console.log("Decoding audio data");
+      // Decode the audio data
+      try {
+        this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        console.log("Audio decoded successfully:",
+          `length: ${this.audioBuffer.length}, ` +
+          `duration: ${this.audioBuffer.duration}, ` +
+          `channels: ${this.audioBuffer.numberOfChannels}`
+        );
+      } catch (decodeError) {
+        console.error("Failed to decode audio:", decodeError);
+        throw decodeError;
+      }
+      
+      console.log("Updating audio engine store");
+      // Update store with audio buffer and duration
+      audioEngineStore.update(state => ({
+        ...state,
+        audioBuffer: this.audioBuffer!,
+        totalDuration: this.audioBuffer!.duration,
+        currentTime: 0
+      }));
+      
+      console.log("Audio loading complete");
+
+    } catch (error) {
+      console.error('Failed to load audio from URL:', error);
+      throw error;
+    }
+  }
 
   /**
    * Start audio playback
@@ -87,8 +146,10 @@ export class AudioService {
       await this.audioContext.resume();
     }
 
-    // Stop any existing playback
-    this.stop();
+    // If already playing, don't do anything
+    if (this.sourceNode) {
+      return;
+    }
 
     // Create and configure source node
     this.sourceNode = this.audioContext.createBufferSource();
@@ -101,14 +162,11 @@ export class AudioService {
     this.sourceNode.onended = () => {
       this.handlePlaybackEnd();
     };
+    
     // Capture offset *before* manipulating the store
     const startOffset = get(audioEngineStore).currentTime;
     
-    // Stop only the active source; keep currentTime intact
-    if (this.sourceNode) {
-      this.sourceNode.stop();
-      this.sourceNode = null;
-    }
+    // Start playback from the current time
     this.sourceNode.start(0, startOffset);
     this.startTime = this.audioContext.currentTime - startOffset;
     
@@ -340,4 +398,41 @@ export const pauseAudio = () => getAudioService().pause();
 export const stopAudio = () => getAudioService().stop();
 export const seekAudio = (time: number) => getAudioService().seek(time);
 export const setAudioVolume = (volume: number) => getAudioService().setVolume(volume);
-export const toggleAudioLoop = () => getAudioService().toggleLoop(); 
+export const toggleAudioLoop = () => getAudioService().toggleLoop();
+
+/**
+ * Load audio from a URL (e.g., backend path)
+ * @param url URL of the audio file to load
+ * @returns Promise that resolves when the audio is loaded
+ */
+export const loadAudioFromUrl = async (url: string): Promise<AudioBuffer> => {
+  console.log("loadAudioFromUrl called with:", url);
+  try {
+    console.log("Using audio service to load from URL...");
+    await getAudioService().loadFromUrl(url);
+    console.log("loadFromUrl completed, retrieving buffer...");
+    
+    const buffer = getAudioService().getAudioBuffer();
+    console.log("Retrieved audio buffer:", buffer ?
+      `AudioBuffer(length: ${buffer.length}, duration: ${buffer.duration}, channels: ${buffer.numberOfChannels})` :
+      'null');
+    
+    if (!buffer) {
+      console.error("Buffer is null after loading");
+      throw new Error('Failed to get audio buffer after loading');
+    }
+    
+    // Verify the buffer was set in the store too
+    const storeState = get(audioEngineStore);
+    console.log("AudioEngineStore state:", {
+      hasBuffer: !!storeState.audioBuffer,
+      duration: storeState.totalDuration,
+      isPlaying: storeState.isPlaying
+    });
+    
+    return buffer;
+  } catch (error) {
+    console.error('Failed to load audio from URL:', error);
+    throw error;
+  }
+};

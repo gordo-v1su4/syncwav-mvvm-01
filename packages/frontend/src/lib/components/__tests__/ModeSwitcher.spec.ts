@@ -1,50 +1,27 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte/svelte5';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ModeSwitcher from '../ModeSwitcher.svelte';
-import { uiStore, setAppMode } from '$lib/stores/uiStore';
 import type { UIState } from '$lib/types';
 
 // Mock the store and its functions
+import * as uiStoreModule from '$lib/stores/uiStore';
 vi.mock('$lib/stores/uiStore', () => {
-  const mockState: UIState = {
-    currentAppMode: 'setup',
-    panelStates: {
-      leftPanelCollapsed: false,
-      rightPanelCollapsed: false
-    },
-    projectState: {
-      hasAudio: false,
-      hasVideo: false,
-      videoFiles: []
-    },
-    loadingStates: {
-      audioAnalysis: false,
-      stemIsolation: false,
-      transientDetection: false,
-      mediaUpload: false
-    },
-    modalState: {
-      isOpen: false,
-      type: null,
-      data: null
-    }
-  };
-  
-  const store = {
-    subscribe: vi.fn((callback) => {
-      callback(mockState);
-      return () => {};
-    }),
-    update: vi.fn()
-  };
-  
   return {
-    uiStore: store,
-    setAppMode: vi.fn((mode) => {
-      mockState.currentAppMode = mode;
-      store.update(state => ({ ...state, currentAppMode: mode }));
-    })
+    uiStore: {
+      subscribe: (run: any) => {
+        run({ currentAppMode: 'setup' });
+        return () => {};
+      }
+    },
+    setAppMode: vi.fn()
   };
+});
+
+describe('ModeSwitcher', () => {
+  it('renders without crashing', () => {
+    const { container } = render(ModeSwitcher);
+    expect(container).toBeTruthy();
+  });
 });
 
 describe('ModeSwitcher', () => {
@@ -65,6 +42,6 @@ describe('ModeSwitcher', () => {
     
     await fireEvent.click(getByText('[EDIT]'));
     
-    expect(setAppMode).toHaveBeenCalledWith('edit');
+    expect(vi.mocked(uiStoreModule).setAppMode).toHaveBeenCalledWith('edit');
   });
 });

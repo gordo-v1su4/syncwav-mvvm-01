@@ -3,6 +3,7 @@
   import { audioEngineStore } from '$lib/stores/audioEngineStore';
   import { projectStore, addVideoClip, setMasterAudioInfo, updateProjectSettings } from '$lib/stores/projectStore';
   import { isValidAudioFile, isValidVideoFile } from '$lib/utils/audioUtils';
+  import { loadAudioFromUrl } from '$lib/utils/audioService';
 
   let audioFileInput: HTMLInputElement;
   let videoFileInput: HTMLInputElement;
@@ -11,8 +12,10 @@
   let videoUploadProgress = 0;
   let isUploadingAudio = false;
   let isUploadingVideo = false;
+  let isLoadingAudio = false;
   let audioUploadError = '';
   let videoUploadError = '';
+  let audioLoadError = '';
 
  // Backend URL
  const BACKEND_URL = 'http://localhost:3002'; // Hardcoded for development
@@ -227,11 +230,50 @@ async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; 
     }
   }
 
-  function proceedToEditMode() {
+  async function proceedToEditMode() {
     if (canProceedToEdit) {
-      console.log("Proceeding to edit mode. Master audio info:", $projectStore.masterAudioInfo);
-      console.log("Video clips:", $projectStore.videoClips);
-      setAppMode('edit');
+      // Try to preload the audio file before switching to edit mode
+      if ($projectStore.masterAudioInfo?.backendPath && !$audioEngineStore.audioBuffer) {
+        try {
+          isLoadingAudio = true;
+          audioLoadError = '';
+          audioUploadProgress = 50; // Show progress
+          
+          console.log("Preloading audio from URL:", $projectStore.masterAudioInfo.backendPath);
+          await loadAudioFromUrl($projectStore.masterAudioInfo.backendPath);
+          
+          isLoadingAudio = false;
+          audioUploadProgress = 100;
+          
+          // Successfully loaded audio, proceed to edit mode
+          console.log("Audio preloaded successfully. Proceeding to edit mode.");
+          console.log("Master audio info:", $projectStore.masterAudioInfo);
+          console.log("Video clips:", $projectStore.videoClips);
+          
+          // Reset progress after a short delay
+          setTimeout(() => {
+            audioUploadProgress = 0;
+            setAppMode('edit');
+          }, 500);
+          
+        } catch (error) {
+          console.error("Failed to preload audio:", error);
+          isLoadingAudio = false;
+          audioUploadProgress = 0;
+          audioLoadError = "Failed to preload audio. You can still proceed to edit mode, but you may need to load the audio there.";
+          
+          // Allow proceeding anyway after 3 seconds
+          setTimeout(() => {
+            audioLoadError = '';
+            setAppMode('edit');
+          }, 3000);
+        }
+      } else {
+        // No need to preload or already loaded
+        console.log("Proceeding to edit mode. Master audio info:", $projectStore.masterAudioInfo);
+        console.log("Video clips:", $projectStore.videoClips);
+        setAppMode('edit');
+      }
     } else {
       if (!$projectStore.masterAudioInfo) {
         audioUploadError = "Please upload a master audio track.";
@@ -418,8 +460,28 @@ async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; 
   </div>
 
   <div class="setup-actions">
-    <button class="proceed-button" on:click={proceedToEditMode} disabled={!canProceedToEdit || isUploadingAudio || isUploadingVideo}>
-      Proceed to Editing
+    {#if audioLoadError}
+      <div class="error-message audio-load-error">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{audioLoadError}</span>
+      </div>
+    {/if}
+    
+    <button
+      class="proceed-button"
+      on:click={proceedToEditMode}
+      disabled={!canProceedToEdit || isUploadingAudio || isUploadingVideo || isLoadingAudio}
+    >
+      {#if isLoadingAudio}
+        <div class="button-spinner"></div>
+        Preloading Audio...
+      {:else}
+        Proceed to Editing
+      {/if}
     </button>
   </div>
 
@@ -711,6 +773,15 @@ async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; 
 .setup-actions {
   margin-top: var(--spacing-lg);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.audio-load-error {
+  max-width: 600px;
+  margin-bottom: 0;
 }
 
 .proceed-button {
@@ -724,6 +795,11 @@ async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; 
   cursor: pointer;
   transition: all var(--transition-normal);
   box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  min-width: 200px;
 }
 
 .proceed-button:hover:not(:disabled) {
@@ -736,6 +812,19 @@ async function generateVideoThumbnail(file: File): Promise<{ thumbnail: string; 
   color: var(--text-dimmed);
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.button-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Responsive */

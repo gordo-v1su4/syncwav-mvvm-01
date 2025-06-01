@@ -2,6 +2,7 @@
   import { audioEngineStore, setAnalysisProgress } from '$lib/stores/audioEngineStore';
   import { detectBeats, detectTransients } from '$lib/wasm';
   import { generateId } from '$lib/utils/audioUtils';
+  import { seekAudio } from '$lib/utils/audioService';
 
   let isDetectingBeats = false;
   let isDetectingTransients = false;
@@ -118,9 +119,23 @@
 
   // Clear all analysis markers
   function clearAllMarkers() {
+    // Show confirmation dialog before clearing markers
+    if (($audioEngineStore.markers.filter(m => m.type !== 'user').length > 0) &&
+        !confirm('Are you sure you want to clear all analysis markers?')) {
+      return;
+    }
+    
     audioEngineStore.update(state => ({
       ...state,
       markers: state.markers.filter(m => m.type === 'user') // Keep only user-defined markers
+    }));
+  }
+  
+  // Clear specific marker type
+  function clearMarkersByType(type: 'beat' | 'transient') {
+    audioEngineStore.update(state => ({
+      ...state,
+      markers: state.markers.filter(m => m.type !== type)
     }));
   }
 
@@ -141,11 +156,100 @@
       markers: [...state.markers, customMarker].sort((a, b) => a.time - b.time)
     }));
   }
+  // Jump to next marker of specified type
+  function jumpToNextMarker(type?: 'beat' | 'transient' | 'user') {
+    const currentTime = $audioEngineStore.currentTime;
+    
+    // Filter markers by type if specified
+    const relevantMarkers = type
+      ? $audioEngineStore.markers.filter(m => m.type === type)
+      : $audioEngineStore.markers;
+    
+    // Find the next marker after current time
+    const nextMarker = relevantMarkers
+      .filter(m => m.time > currentTime)
+      .sort((a, b) => a.time - b.time)[0];
+    
+    // If found, seek to it
+    if (nextMarker) {
+      seekAudio(nextMarker.time);
+    }
+  }
+  
+  // Jump to previous marker of specified type
+  function jumpToPrevMarker(type?: 'beat' | 'transient' | 'user') {
+    const currentTime = $audioEngineStore.currentTime;
+    
+    // Filter markers by type if specified
+    const relevantMarkers = type
+      ? $audioEngineStore.markers.filter(m => m.type === type)
+      : $audioEngineStore.markers;
+    
+    // Find the previous marker before current time
+    const prevMarker = relevantMarkers
+      .filter(m => m.time < currentTime)
+      .sort((a, b) => b.time - a.time)[0];
+    
+    // If found, seek to it
+    if (prevMarker) {
+      seekAudio(prevMarker.time);
+    }
+  }
 </script>
 
 <div class="analysis-controls">
   <div class="section-header">
     <h3>Audio Analysis</h3>
+    <div class="section-actions">
+      <button
+        class="action-btn"
+        on:click={() => jumpToPrevMarker()}
+        disabled={!$audioEngineStore.audioBuffer || $audioEngineStore.markers.filter(m => m.time < $audioEngineStore.currentTime).length === 0}
+        title="Jump to previous marker"
+        aria-label="Jump to previous marker"
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="16" 
+          height="16" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="11 17 6 12 11 7" />
+          <polyline points="18 17 13 12 18 7" />
+        </svg>
+        <span class="sr-only">Jump to previous marker</span>
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => jumpToNextMarker()}
+        disabled={!$audioEngineStore.audioBuffer || $audioEngineStore.markers.filter(m => m.time > $audioEngineStore.currentTime).length === 0}
+        title="Jump to next marker"
+        aria-label="Jump to next marker"
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="16" 
+          height="16" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="13 17 18 12 13 7" />
+          <polyline points="6 17 11 12 6 7" />
+        </svg>
+        <span class="sr-only">Jump to next marker</span>
+      </button>
+    </div>
   </div>
   
   <!-- Analysis progress indicators -->
@@ -252,8 +356,32 @@
     </button>
     
     <button 
-      class="analysis-btn danger" 
-      on:click={clearAllMarkers} 
+      class="analysis-btn"
+      on:click={() => clearMarkersByType('beat')}
+      disabled={$audioEngineStore.markers.filter(m => m.type === 'beat').length === 0}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="8" y1="12" x2="16" y2="12"></line>
+      </svg>
+      Clear Beat Markers
+    </button>
+    
+    <button
+      class="analysis-btn"
+      on:click={() => clearMarkersByType('transient')}
+      disabled={$audioEngineStore.markers.filter(m => m.type === 'transient').length === 0}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"></path>
+        <path d="m6 6 12 12"></path>
+      </svg>
+      Clear Transient Markers
+    </button>
+    
+    <button
+      class="analysis-btn danger"
+      on:click={clearAllMarkers}
       disabled={$audioEngineStore.markers.length === 0}
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -300,13 +428,49 @@
     overflow-y: auto;
   }
 
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+  
   .section-header h3 {
-    margin: 0 0 var(--spacing-sm) 0;
+    margin: 0;
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--neon-accent-1);
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: var(--spacing-sm);
+  }
+  
+  .section-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+  
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  
+  .action-btn:hover:not(:disabled) {
+    border-color: var(--neon-accent-1);
+    color: var(--neon-accent-1);
+  }
+  
+  .action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .control-group {

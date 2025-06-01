@@ -5,11 +5,73 @@
   import WaveformDisplay from './WaveformDisplay.svelte';
   import PlaybackControls from './PlaybackControls.svelte';
   import AudioAnalysisControls from './AudioAnalysisControls.svelte';
+  import AudioDebugger from './AudioDebugger.svelte';
   import { formatTime } from '$lib/utils/audioUtils';
+  import { loadAudioFromUrl } from '$lib/utils/audioService';
+  import { onMount } from 'svelte';
 
   $: panelStates = $uiStore.panelStates;
   $: audioState = $audioEngineStore;
   $: projectState = $projectStore;
+  
+  let isLoading = false;
+  let loadError = '';
+
+  // Load audio from backend when component mounts
+  onMount(async () => {
+    console.log("MainEditingInterfaceView mounted");
+    console.log("Project state:", projectState);
+    console.log("Audio state:", audioState);
+    
+    // Check if we have master audio info with a backend path
+    if (projectState.masterAudioInfo?.backendPath) {
+      if (audioState.audioBuffer) {
+        console.log("Audio buffer already exists in store, not reloading");
+        return;
+      }
+      
+      try {
+        console.log("Starting audio load from URL:", projectState.masterAudioInfo.backendPath);
+        isLoading = true;
+        loadError = '';
+        
+        // Add a small delay to ensure the UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const buffer = await loadAudioFromUrl(projectState.masterAudioInfo.backendPath);
+        console.log("Audio loaded successfully:", 
+          `length: ${buffer.length}, ` +
+          `duration: ${buffer.duration}, ` +
+          `channels: ${buffer.numberOfChannels}`
+        );
+        
+        // Log the updated audio state
+        console.log("Audio buffer loaded:", {
+          hasBuffer: !!$audioEngineStore.audioBuffer,
+          duration: $audioEngineStore.audioBuffer?.duration,
+          sampleRate: $audioEngineStore.audioBuffer?.sampleRate,
+          channels: $audioEngineStore.audioBuffer?.numberOfChannels
+        });
+        
+      } catch (error) {
+        console.error("Failed to load audio from backend:", error);
+        loadError = "Failed to load audio waveform. Please try again.";
+      } finally {
+        isLoading = false;
+      }
+    } else {
+      console.log("No master audio info or backend path available");
+      console.log("projectState.masterAudioInfo:", projectState.masterAudioInfo);
+    }
+    
+    // Log the audio state after loading attempt
+    console.log("Final audio state after mount:", {
+      hasBuffer: !!$audioEngineStore.audioBuffer,
+      duration: $audioEngineStore.audioBuffer?.duration,
+      sampleRate: $audioEngineStore.audioBuffer?.sampleRate,
+      channels: $audioEngineStore.audioBuffer?.numberOfChannels
+    });
+  });
 
   // Handle seek from waveform
   function handleWaveformSeek(event: CustomEvent<{ time: number }>) {
@@ -24,18 +86,59 @@
 
 <div class="main-workspace">
   <!-- Master Waveform Display Row -->
-  <div class="waveform-display" style="grid-area: waveform;">
-    <WaveformDisplay 
-      audioBuffer={audioState.audioBuffer}
-      on:seek={handleWaveformSeek}
-    />
+  <div class="waveform-display" style="grid-area: waveform; background: #000; padding: 0; overflow: hidden;">
+    {#if isLoading}
+      <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading audio waveform...</p>
+      </div>
+    {:else if loadError}
+      <div class="error-overlay">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p>{loadError}</p>
+        <button on:click={() => {
+          loadError = '';
+          if (projectState.masterAudioInfo?.backendPath) {
+            isLoading = true;
+            loadAudioFromUrl(projectState.masterAudioInfo.backendPath)
+              .then(() => isLoading = false)
+              .catch(err => {
+                console.error("Failed to reload audio:", err);
+                loadError = "Failed to load audio waveform. Please try again.";
+                isLoading = false;
+              });
+          }
+        }}>Try Again</button>
+      </div>
+    {/if}
+    
+    <!-- Audio Buffer Status -->
+    <div style="position: absolute; top: 5px; right: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px;">
+      {audioState.audioBuffer ? 'Audio Buffer: ' + audioState.audioBuffer.duration.toFixed(2) + 's' : 'No Audio Buffer'}
+    </div>
+    
+    <!-- Single Waveform Display Component -->
+    {#if audioState.audioBuffer}
+      <WaveformDisplay
+        audioBuffer={audioState.audioBuffer}
+        width={document.querySelector('.waveform-display')?.clientWidth || 800}
+        height={120}
+        on:seek={handleWaveformSeek}
+      />
+    {:else}
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; font-weight: bold; background: rgba(0,0,0,0.7); padding: 5px; z-index: 100;">
+        AudioBuffer is missing!
+      </div>
+    {/if}
   </div>
 
-  <!-- Left Side Panel: Asset Library -->
+  <!-- Left Side Panel -->
   <div class="asset-panel" style="grid-area: asset-panel;" class:collapsed={panelStates.leftPanelCollapsed}>
     <div class="panel-header">
-      <!-- <Library size={"20"} /> -->
-      <h4>Asset Library</h4>
       <button class="collapse-btn" on:click={toggleLeftPanel} title="Toggle panel">
         {#if panelStates.leftPanelCollapsed}
           <!-- <ChevronRight size={"16"} /> -->
@@ -49,7 +152,7 @@
         <h5>Video Clips</h5>
         <div class="asset-list">
           {#each projectState.videoClips as clip}
-            <div class="asset-item" class:selected={clip.isSelected}>
+            <div class="asset-item" class:selected={clip.isSelected} title="{clip.name} ({clip.duration > 0 ? formatTime(clip.duration) : 'Unknown duration'})">
               <div class="asset-thumbnail">
                 {#if clip.thumbnail}
                   <img src={clip.thumbnail} alt={clip.name} />
@@ -57,12 +160,10 @@
                   <div class="thumbnail-placeholder"></div>
                 {/if}
               </div>
-              <div class="asset-info">
-                <span class="asset-name">{clip.name}</span>
-                {#if clip.duration > 0}
-                  <span class="asset-duration">{formatTime(clip.duration)}</span>
-                {/if}
-              </div>
+              <!-- Duration badge instead of text label -->
+              {#if clip.duration > 0}
+                <div class="duration-badge">{formatTime(clip.duration)}</div>
+              {/if}
             </div>
           {/each}
           {#if projectState.videoClips.length === 0}
@@ -92,6 +193,8 @@
         </div>
       </div>
     </div>
+    
+    <!-- Video preview only - removed alternative visualizations -->
   </div>
 
   <!-- Center: Video Timeline -->
@@ -130,11 +233,9 @@
     </div>
   </div>
 
-  <!-- Right Side Panel: Audio-Driven Control Panel -->
+  <!-- Right Side Panel -->
   <div class="control-panel" style="grid-area: control-panel;" class:collapsed={panelStates.rightPanelCollapsed}>
     <div class="panel-header">
-      <!-- <Settings size={"20"} /> -->
-      <h4>Audio-Visual Controls</h4>
       <button class="collapse-btn" on:click={toggleRightPanel} title="Toggle panel">
         {#if panelStates.rightPanelCollapsed}
           <!-- <ChevronLeft size={"16"} /> -->
@@ -150,6 +251,7 @@
     </div>
   </div>
 
+
   <!-- Master Playback Controls -->
   <div class="playback-controls-container" style="grid-area: playback;">
     <PlaybackControls />
@@ -161,14 +263,15 @@
    height: 100%;
    display: grid;
    grid-template-areas: 
-     "asset-panel waveform control-panel"
-     "asset-panel video-preview control-panel" 
-     "asset-panel video-timeline control-panel"
-     "playback playback playback";
+    "asset-panel video-preview control-panel"
+    "asset-panel waveform control-panel" 
+    "asset-panel video-timeline control-panel"
+    "playback playback playback";
    grid-template-columns: 280px 1fr 320px;
-   grid-template-rows: 120px 1fr 180px 80px;
-   gap: 1px;
-   background: var(--border-color);
+   grid-template-rows: 1fr 120px 180px 60px;
+   gap: 2px;
+   background: #1a1a1a;
+   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
  }
 
 .main-workspace:has(.asset-panel.collapsed) {
@@ -188,24 +291,94 @@
   .asset-panel,
   .video-preview,
   .video-timeline,
-  .control-panel,
-  .playback-controls {
+  .control-panel {
     background: var(--bg-secondary);
     overflow: hidden;
   }
 
   /* Master Waveform Display */
   .waveform-display {
-    background: var(--bg-primary);
+    background: #000;
     position: relative;
-  }
-
-  /* Panel System */
-  .asset-panel,
-  .control-panel {
+    height: 120px; /* Ensure container has fixed height */
+    min-height: 120px;
+    max-height: 120px;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    transition: all var(--transition-normal);
+    align-items: stretch;
+    justify-content: center;
+  }
+  
+  
+  /* Loading and Error Overlays */
+  .loading-overlay,
+  .error-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10;
+    color: var(--text-primary);
+    gap: var(--spacing-md);
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--bg-tertiary);
+    border-top: 4px solid var(--neon-accent-1);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .error-overlay svg {
+    color: var(--color-error);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .error-overlay p {
+    text-align: center;
+    margin: 0 0 var(--spacing-md) 0;
+  }
+  
+  .error-overlay button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--neon-accent-1);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  
+  .error-overlay button:hover {
+    background: var(--neon-accent-2);
+    transform: translateY(-2px);
+  }
+
+  /* Panel Styling */
+  .asset-panel, .control-panel {
+    background: #252525;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .asset-panel.collapsed {
@@ -219,44 +392,43 @@
   .panel-header {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border-color);
-    min-height: 48px;
+    justify-content: flex-end;
+    padding: 8px;
+    background: linear-gradient(to bottom, #333333, #2a2a2a);
+    border-bottom: 1px solid #1a1a1a;
+    min-height: 36px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
   }
 
-  .panel-header h4 {
-    flex: 1;
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-  }
-
-  .collapsed .panel-header h4 {
-    display: none;
-  }
+  /* Panel header styling simplified - removed h4 selectors */
 
   .collapse-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #a0a0a0;
     cursor: pointer;
-    padding: var(--spacing-xs);
-    transition: color var(--transition-fast);
+    padding: 4px 8px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 3px;
+    transition: all 0.2s ease;
   }
 
   .collapse-btn:hover {
-    color: var(--neon-accent-1);
+    background: rgba(0, 0, 0, 0.3);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .panel-content {
     flex: 1;
-    padding: var(--spacing-md);
+    padding: 12px;
     overflow-y: auto;
+    background: linear-gradient(to bottom, #252525, #202020);
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
   }
 
   .collapsed .panel-content {
@@ -277,46 +449,63 @@
   }
 
   .asset-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-sm);
   }
 
   .asset-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
+    padding: var(--spacing-xs);
     background: var(--bg-tertiary);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--transition-fast);
     border: 1px solid transparent;
+    position: relative;
   }
 
   .asset-item:hover {
-    background: var(--hover-bg);
-    transform: translateY(-1px);
+    background: rgba(80, 80, 80, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
   .asset-item.selected {
-    border-color: var(--neon-accent-1);
-    background: var(--bg-elevated);
+    border-color: #4db6ac; /* Match playhead color */
+    background: rgba(77, 182, 172, 0.1);
+    box-shadow: 0 0 8px rgba(77, 182, 172, 0.3);
   }
 
   .asset-thumbnail {
-    width: 48px;
-    height: 27px;
+    width: 80px;
+    height: 45px;
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
     flex-shrink: 0;
     overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin-bottom: 4px;
   }
 
   .asset-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  
+  .duration-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-family: monospace;
   }
 
   .thumbnail-placeholder {
@@ -330,24 +519,7 @@
     font-size: 0.7rem;
   }
 
-  .asset-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .asset-name {
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
-  .asset-duration {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-family: monospace;
-  }
+  /* Removed unused asset info, name, and duration selectors */
 
   .empty-asset-list {
     text-align: center;
@@ -386,7 +558,10 @@
   /* Video Preview */
   .video-preview {
     position: relative;
-    background: var(--bg-primary);
+    background: #151515;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
   }
 
   .video-container {
@@ -395,90 +570,115 @@
     align-items: center;
     justify-content: center;
     position: relative;
+    background: linear-gradient(to bottom, #1a1a1a, #121212);
   }
 
   .video-canvas {
     background: #000;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
     max-width: 100%;
     max-height: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
   }
 
   .video-overlay {
     position: absolute;
-    top: 0;
-    right: 0;
-    padding: var(--spacing-sm);
+    top: 10px;
+    right: 10px;
+    z-index: 10;
   }
 
   .video-controls {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: 8px;
     background: rgba(0, 0, 0, 0.7);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .video-control-btn {
-    background: none;
-    border: none;
-    color: var(--text-primary);
+    background: rgba(77, 182, 172, 0.1);
+    border: 1px solid rgba(77, 182, 172, 0.3);
+    color: #4db6ac;
     cursor: pointer;
     font-size: 1rem;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+  }
+
+  .video-control-btn:hover {
+    background: rgba(77, 182, 172, 0.2);
+    border-color: rgba(77, 182, 172, 0.5);
+    transform: translateY(-1px);
   }
 
   .video-status {
-    color: var(--text-secondary);
+    color: #a0a0a0;
     font-size: 0.8rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 
   /* Video Timeline */
   .video-timeline {
-    background: var(--bg-secondary);
+    background: #1d1d1d;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
   }
 
   .timeline-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border-color);
+    padding: 8px 12px;
+    background: linear-gradient(to bottom, #333333, #2a2a2a);
+    border-bottom: 1px solid #1a1a1a;
   }
 
   .timeline-header h4 {
     margin: 0;
-    color: var(--text-primary);
+    color: #e0e0e0;
     font-size: 0.9rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 
   .timeline-btn {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--radius-sm);
+    background: rgba(77, 182, 172, 0.1);
+    border: 1px solid rgba(77, 182, 172, 0.3);
+    color: #4db6ac;
+    padding: 4px 8px;
+    border-radius: 3px;
     font-size: 0.8rem;
+    transition: all 0.2s ease;
   }
 
   .timeline-btn:hover {
-    border-color: var(--neon-accent-1);
-    color: var(--neon-accent-1);
+    background: rgba(77, 182, 172, 0.2);
+    border-color: rgba(77, 182, 172, 0.5);
+    transform: translateY(-1px);
   }
 
   .timeline-content {
-    height: calc(100% - 48px);
+    height: calc(100% - 40px);
     position: relative;
-    padding: var(--spacing-md);
+    padding: 12px;
+    background: linear-gradient(to bottom, #202020, #181818);
   }
 
   .timeline-track {
     height: 40px;
-    background: var(--bg-primary);
-    border-radius: var(--radius-sm);
+    background: #151515;
+    border-radius: 4px;
     position: relative;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 12px;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
   }
 
   .empty-timeline {
@@ -493,292 +693,61 @@
 
   .clip-block {
     position: absolute;
-    height: 100%;
-    background: #2a2a2a;
-    border-radius: var(--radius-sm);
+    height: calc(100% - 4px);
+    top: 2px;
+    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+    border-radius: 3px;
     display: flex;
     align-items: center;
-    padding: 0 var(--spacing-sm);
+    justify-content: center;
     cursor: pointer;
-    transition: all var(--transition-fast);
-    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    border: 1px solid #444;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .clip-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
   }
 
   .clip-block.selected {
-    border-color: var(--neon-accent-1);
+    border-color: #4db6ac;
+    background: linear-gradient(to bottom, #2a4a45, #1d3935);
+    box-shadow: 0 0 8px rgba(77, 182, 172, 0.4);
   }
 
   .clip-block.playing {
-    border-color: var(--neon-accent-2);
+    border-color: #4db6ac;
     animation: pulse 1.5s infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { border-color: var(--neon-accent-2); }
-    50% { border-color: rgba(255, 107, 53, 0.5); }
+    0%, 100% { box-shadow: 0 0 8px rgba(77, 182, 172, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(77, 182, 172, 0.3); }
   }
 
   .clip-name {
-    color: var(--text-primary);
-    font-size: 0.8rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none;
   }
 
   .timeline-ruler {
     display: flex;
     justify-content: space-between;
     position: relative;
+    height: 20px;
+    margin-top: 4px;
+    border-top: 1px solid #333;
+    padding-top: 4px;
   }
 
   .time-marker {
-    color: var(--text-dimmed);
+    color: #a0a0a0;
     font-size: 0.75rem;
     font-family: monospace;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
   }
 
-  /* Control Panel Sections */
-  .control-section {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .control-section h5 {
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .analysis-tools {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .analysis-btn {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    text-align: left;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .analysis-btn:hover:not(:disabled) {
-    border-color: var(--neon-accent-1);
-    color: var(--neon-accent-1);
-  }
-
-  .analysis-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .analysis-btn.toggle.active {
-    background: var(--neon-accent-1);
-    color: var(--bg-primary);
-    border-color: var(--neon-accent-1);
-  }
-
-  .stem-controls {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .stem-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-  }
-
-  .stem-item span {
-    flex: 1;
-    color: var(--text-primary);
-    font-size: 0.85rem;
-  }
-
-  .stem-solo,
-  .stem-detect {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .stem-solo:hover:not(:disabled),
-  .stem-detect:hover:not(:disabled) {
-    border-color: var(--neon-accent-1);
-    color: var(--neon-accent-1);
-  }
-
-  .stem-solo:disabled,
-  .stem-detect:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .stem-note,
-  .sync-note {
-    font-size: 0.8rem;
-    color: var(--text-dimmed);
-    font-style: italic;
-    margin-top: var(--spacing-sm);
-  }
-
-  .sync-controls {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .sync-controls label {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .sync-select,
-  .sync-input {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: var(--spacing-xs);
-    border-radius: var(--radius-sm);
-  }
-
-  .sync-select:disabled,
-  .sync-input:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Playback Controls */
-  .playback-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--bg-tertiary);
-  }
-
-  .playback-main {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .playback-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .playback-btn.primary {
-    width: 48px;
-    height: 48px;
-    background: var(--neon-accent-1);
-    color: var(--bg-primary);
-    border-color: var(--neon-accent-1);
-  }
-
-  .playback-btn:hover:not(:disabled) {
-    border-color: var(--neon-accent-1);
-    transform: scale(1.05);
-  }
-
-  .playback-btn.primary:hover:not(:disabled) {
-    background: var(--color-success);
-    transform: scale(1.1);
-  }
-
-  .playback-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .loop-btn.active {
-    background: var(--neon-accent-2);
-    border-color: var(--neon-accent-2);
-    color: var(--bg-primary);
-  }
-
-  .playback-info {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-lg);
-  }
-
-  .time-display {
-    color: var(--text-primary);
-    font-family: monospace;
-    font-size: 1rem;
-    min-width: 100px;
-  }
-
-  .playback-controls-extended {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-lg);
-  }
-
-  .volume-control {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .volume-slider {
-    width: 80px;
-    accent-color: var(--neon-accent-1);
-  }
-
-  .tempo-controls {
-    display: flex;
-    gap: var(--spacing-md);
-  }
-
-  .tempo-controls label {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-  }
-
-  .tempo-slider,
-  .pitch-slider {
-    width: 60px;
-    accent-color: var(--neon-accent-1);
-  }
-
-  .tempo-value,
-  .pitch-value {
-    font-family: monospace;
-    min-width: 30px;
-    text-align: center;
-  }
-</style> 
+  /* Control Panel Sections - Moved to individual component files */
+  /* Playback controls moved to PlaybackControls.svelte */
+</style>
