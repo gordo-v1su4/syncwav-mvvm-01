@@ -2,6 +2,50 @@
 
 A browser-based audio-visual creation suite for synchronizing video clips with music, built with SvelteKit and Rust/WebAssembly.
 
+```
+project-root/
+├── packages/
+│   ├── backend/
+│   │   ├── src/
+│   │   │   ├── index.ts
+│   │   │   └── server.ts
+│   │   ├── uploads/
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   ├── frontend/
+│   │   ├── src/
+│   │   │   ├── lib/
+│   │   │   │   └── components/
+│   │   │   │       └── WaveformDisplay.svelte
+│   │   │   ├── routes/
+│   │   │   │   └── +page.svelte
+│   │   │   └── app.html
+│   │   ├── static/
+│   │   ├── package.json
+│   │   └── svelte.config.js
+│   └── rust-modules/
+├── docs/
+├── node_modules/
+├── README.md
+├── package.json
+└── pnpm-workspace.yaml
+```
+
+## Project Structure Outline
+
+- **packages/backend/**: Node.js/Express backend server. Handles audio/video uploads, serves files, and API endpoints.
+  - `src/index.ts`: Main backend entry point and API logic.
+  - `uploads/`: Uploaded user files (audio, video, etc).
+- **packages/frontend/**: SvelteKit frontend app. Handles UI, file upload, and waveform display.
+  - `src/lib/components/`: Svelte components (e.g., WaveformDisplay for audio visualization).
+  - `src/routes/`: SvelteKit routes (e.g., +page.svelte is the main upload/view page).
+  - `static/`: Static frontend assets.
+- **packages/rust-modules/**: Rust code for WASM modules (if used for audio processing, etc).
+- **docs/**: Documentation and design notes.
+- **README.md**: Project documentation and usage instructions.
+- **pnpm-workspace.yaml**: Monorepo workspace config.
+
+
 ## Monorepo Structure
 
 This project uses a monorepo structure with the following packages:

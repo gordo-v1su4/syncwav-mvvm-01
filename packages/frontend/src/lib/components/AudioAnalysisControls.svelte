@@ -200,56 +200,7 @@
 <div class="analysis-controls">
   <div class="section-header">
     <h3>Audio Analysis</h3>
-    <div class="section-actions">
-      <button
-        class="action-btn"
-        on:click={() => jumpToPrevMarker()}
-        disabled={!$audioEngineStore.audioBuffer || $audioEngineStore.markers.filter(m => m.time < $audioEngineStore.currentTime).length === 0}
-        title="Jump to previous marker"
-        aria-label="Jump to previous marker"
-      >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="16" 
-          height="16" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          stroke-width="2" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="11 17 6 12 11 7" />
-          <polyline points="18 17 13 12 18 7" />
-        </svg>
-        <span class="sr-only">Jump to previous marker</span>
-      </button>
-      <button
-        class="action-btn"
-        on:click={() => jumpToNextMarker()}
-        disabled={!$audioEngineStore.audioBuffer || $audioEngineStore.markers.filter(m => m.time > $audioEngineStore.currentTime).length === 0}
-        title="Jump to next marker"
-        aria-label="Jump to next marker"
-      >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="16" 
-          height="16" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          stroke-width="2" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="13 17 18 12 13 7" />
-          <polyline points="6 17 11 12 6 7" />
-        </svg>
-        <span class="sr-only">Jump to next marker</span>
-      </button>
-    </div>
+    <!-- Removed section-actions div as buttons were removed -->
   </div>
   
   <!-- Analysis progress indicators -->
@@ -430,11 +381,12 @@
 
   .section-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
+    justify-content: space-between;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+    text-align: left;
   }
   
   .section-header h3 {
@@ -444,35 +396,6 @@
     color: var(--neon-accent-1);
   }
   
-  .section-actions {
-    display: flex;
-    gap: var(--spacing-xs);
-  }
-  
-  .action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-  
-  .action-btn:hover:not(:disabled) {
-    border-color: var(--neon-accent-1);
-    color: var(--neon-accent-1);
-  }
-  
-  .action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
   .control-group {
     display: flex;
     flex-direction: column;

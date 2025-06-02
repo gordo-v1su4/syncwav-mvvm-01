@@ -1,35 +1,34 @@
 <script lang="ts">
   import { uiStore, toggleLeftPanel, toggleRightPanel } from '$lib/stores/uiStore';
-  import { audioEngineStore } from '$lib/stores/audioEngineStore';
+
   import { projectStore } from '$lib/stores/projectStore';
-  import WaveformDisplay from './WaveformDisplay.svelte';
-  import PlaybackControls from './PlaybackControls.svelte';
+  import * as WaveformDisplayModule from './WaveformDisplay.svelte';
+
   import AudioAnalysisControls from './AudioAnalysisControls.svelte';
-  import AudioDebugger from './AudioDebugger.svelte';
   import { formatTime } from '$lib/utils/audioUtils';
   import { loadAudioFromUrl } from '$lib/utils/audioService';
   import { onMount } from 'svelte';
 
+  let waveformRef: any = null;
+  let isPlaying = false;
+  let currentTime = 0;
+
   $: panelStates = $uiStore.panelStates;
-  $: audioState = $audioEngineStore;
+
   $: projectState = $projectStore;
   
   let isLoading = false;
   let loadError = '';
 
+
   // Load audio from backend when component mounts
   onMount(async () => {
-    console.log("MainEditingInterfaceView mounted");
-    console.log("Project state:", projectState);
-    console.log("Audio state:", audioState);
+
+
+
     
     // Check if we have master audio info with a backend path
     if (projectState.masterAudioInfo?.backendPath) {
-      if (audioState.audioBuffer) {
-        console.log("Audio buffer already exists in store, not reloading");
-        return;
-      }
-      
       try {
         console.log("Starting audio load from URL:", projectState.masterAudioInfo.backendPath);
         isLoading = true;
@@ -46,12 +45,7 @@
         );
         
         // Log the updated audio state
-        console.log("Audio buffer loaded:", {
-          hasBuffer: !!$audioEngineStore.audioBuffer,
-          duration: $audioEngineStore.audioBuffer?.duration,
-          sampleRate: $audioEngineStore.audioBuffer?.sampleRate,
-          channels: $audioEngineStore.audioBuffer?.numberOfChannels
-        });
+
         
       } catch (error) {
         console.error("Failed to load audio from backend:", error);
@@ -64,29 +58,74 @@
       console.log("projectState.masterAudioInfo:", projectState.masterAudioInfo);
     }
     
-    // Log the audio state after loading attempt
-    console.log("Final audio state after mount:", {
-      hasBuffer: !!$audioEngineStore.audioBuffer,
-      duration: $audioEngineStore.audioBuffer?.duration,
-      sampleRate: $audioEngineStore.audioBuffer?.sampleRate,
-      channels: $audioEngineStore.audioBuffer?.numberOfChannels
-    });
+
   });
 
-  // Handle seek from waveform
-  function handleWaveformSeek(event: CustomEvent<{ time: number }>) {
-    // The PlaybackControls component handles the actual seeking
-    // This just forwards the event
-    audioEngineStore.update(state => ({
-      ...state,
-      currentTime: event.detail.time
-    }));
-  }
+
 </script>
 
 <div class="main-workspace">
+  <!-- Left Side Panel -->
+  <div class="asset-panel" style="grid-area: asset-panel;" class:collapsed={panelStates.leftPanelCollapsed}>
+    <div class="panel-header">
+      <button class="collapse-btn" on:click={toggleLeftPanel} title="Toggle panel">
+        {#if panelStates.leftPanelCollapsed}
+          <!-- <ChevronRight size={"16"} /> -->
+        {:else}
+          <!-- <ChevronLeft size={"16"} /> -->
+        {/if}
+      </button>
+    </div>
+    <div class="panel-content">
+      <div class="asset-section">
+        <h5>Video Clips</h5>
+        <div class="asset-list">
+          {#each projectState.videoClips || [] as clip}
+            <div class="asset-item" class:selected={clip.isSelected} title="{clip.name} ({clip.duration > 0 ? formatTime(clip.duration) : 'Unknown duration'})">
+              <div class="asset-thumbnail">
+                {#if clip.thumbnail}
+                  <img src={clip.thumbnail} alt={clip.name} />
+                {:else}
+                  <div class="thumbnail-placeholder"></div>
+                {/if}
+              </div>
+              <!-- Duration badge instead of text label -->
+              {#if clip.duration > 0}
+                <div class="duration-badge">{formatTime(clip.duration)}</div>
+              {/if}
+            </div>
+          {/each}
+          {#if (projectState.videoClips || []).length === 0}
+            <div class="empty-asset-list">
+              <p>No video clips uploaded</p>
+              <small>Go to SETUP mode to upload videos</small>
+            </div>
+          {/if}
+        </div>
+      </div>
+      <div class="asset-section">
+        <h5>AI Generations</h5>
+        <p class="coming-soon">Coming Soon</p>
+        <button class="import-button">Import Additional Clips</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center: Video Preview -->
+  <div class="video-preview" style="grid-area: video-preview;">
+    <div class="video-container">
+      <canvas class="video-canvas" width="640" height="360"></canvas>
+      <div class="video-overlay">
+        <div class="video-controls">
+          <button class="video-control-btn" title="Fullscreen">⛶</button>
+          <span class="video-status">Preview: Ready</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Master Waveform Display Row -->
-  <div class="waveform-display" style="grid-area: waveform; background: #000; padding: 0; overflow: hidden;">
+  <div class="waveform-display debug-waveform-area" style="grid-area: waveform; height: 140px;">
     {#if isLoading}
       <div class="loading-overlay">
         <div class="loading-spinner"></div>
@@ -115,26 +154,91 @@
         }}>Try Again</button>
       </div>
     {/if}
-    
     <!-- Audio Buffer Status -->
-    <div style="position: absolute; top: 5px; right: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px;">
-      {audioState.audioBuffer ? 'Audio Buffer: ' + audioState.audioBuffer.duration.toFixed(2) + 's' : 'No Audio Buffer'}
-    </div>
-    
-    <!-- Single Waveform Display Component -->
-    {#if audioState.audioBuffer}
-      <WaveformDisplay
-        audioBuffer={audioState.audioBuffer}
-        width={document.querySelector('.waveform-display')?.clientWidth || 800}
-        height={120}
-        on:seek={handleWaveformSeek}
-      />
+    <div style="position: absolute; top: 5px; right: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px;"></div>
+    <!-- Single Waveform Display Component + Minimal Controls -->
+    {#if projectState.masterAudioInfo?.backendPath}
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; height: 140px; position: relative; border: 2px solid #4db6ac; background: #181818;">
+        <svelte:component this={WaveformDisplayModule.default}
+          bind:this={waveformRef}
+          url={projectState.masterAudioInfo.backendPath}
+          on:audioprocess={e => currentTime = e.detail.currentTime}
+          on:seek={e => currentTime = e.detail.currentTime}
+          on:play={() => isPlaying = true}
+          on:pause={() => isPlaying = false}
+        />
+        <!-- Overlayed Playback Controls -->
+        <div class="waveform-playback-controls">
+  <button on:click={() => isPlaying ? waveformRef?.pause() : waveformRef?.play()} class="waveform-play-btn">
+    {isPlaying ? 'Pause' : 'Play'}
+  </button>
+  <button on:click={() => waveformRef?.stop()} class="waveform-stop-btn">Stop</button>
+  <span class="waveform-time-display">
+    {formatTime(currentTime)} / {formatTime(waveformRef?.getDuration?.() ?? 0)}
+  </span>
+</div>
+      </div>
     {:else}
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; font-weight: bold; background: rgba(0,0,0,0.7); padding: 5px; z-index: 100;">
-        AudioBuffer is missing!
+        No audio URL provided!
       </div>
     {/if}
   </div>
+
+  <!-- Center: Video Timeline -->
+  <div class="video-timeline" style="grid-area: video-timeline;">
+    <div class="timeline-header">
+      <h4>Video Timeline</h4>
+      <div class="timeline-tools">
+        <button class="timeline-btn">Snap to Markers</button>
+      </div>
+    </div>
+    <div class="timeline-content">
+      <div class="timeline-track">
+        {#each projectState.videoClips || [] as clip}
+          <div 
+            class="clip-block" 
+            class:selected={clip.isSelected}
+            class:playing={clip.isPlaying}
+            style="left: {(clip.startTime / (waveformRef?.getDuration?.() || 60)) * 100}%; width: {((clip.endTime - clip.startTime) / (waveformRef?.getDuration?.() || 60)) * 100}%;"
+          >
+            <span class="clip-name">{clip.name}</span>
+          </div>
+        {/each}
+        {#if (projectState.videoClips || []).length === 0}
+          <div class="empty-timeline">
+            <p>No video clips in timeline</p>
+            <small>Add clips to see them here</small>
+          </div>
+        {/if}
+      </div>
+      <div class="timeline-ruler">
+        <div class="time-marker" style="left: 0%;">0:00</div>
+        <div class="time-marker" style="left: 25%;">{formatTime((waveformRef?.getDuration?.() || 240) * 0.25)}</div>
+        <div class="time-marker" style="left: 50%;">{formatTime((waveformRef?.getDuration?.() || 240) * 0.5)}</div>
+        <div class="time-marker" style="left: 75%;">{formatTime((waveformRef?.getDuration?.() || 240) * 0.75)}</div>
+        <div class="time-marker" style="left: 100%;">{formatTime(waveformRef?.getDuration?.() || 240)}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side Panel -->
+  <div class="control-panel" style="grid-area: control-panel;" class:collapsed={panelStates.rightPanelCollapsed}>
+    <div class="panel-header">
+      <button class="collapse-btn" on:click={toggleRightPanel} title="Toggle panel">
+        {#if panelStates.rightPanelCollapsed}
+          <!-- <ChevronLeft size={"16"} /> -->
+        {:else}
+          <!-- <ChevronRight size={"16"} /> -->
+        {/if}
+      </button>
+    </div>
+    <div class="panel-content">
+      <!-- Audio Analysis Tools -->
+      <AudioAnalysisControls />
+    </div>
+  </div>
+</div>
 
   <!-- Left Side Panel -->
   <div class="asset-panel" style="grid-area: asset-panel;" class:collapsed={panelStates.leftPanelCollapsed}>
@@ -189,7 +293,7 @@
       <div class="video-overlay">
         <div class="video-controls">
           <button class="video-control-btn" title="Fullscreen">⛶</button>
-          <span class="video-status">Preview: {audioState.audioBuffer ? 'Ready' : 'No Audio Loaded'}</span>
+          <span class="video-status">Preview: Ready</span>
         </div>
       </div>
     </div>
@@ -212,7 +316,7 @@
             class="clip-block" 
             class:selected={clip.isSelected}
             class:playing={clip.isPlaying}
-            style="left: {(clip.startTime / (audioState.totalDuration || 60)) * 100}%; width: {((clip.endTime - clip.startTime) / (audioState.totalDuration || 60)) * 100}%;"
+            style="left: {(clip.startTime / (waveformRef?.getDuration?.() || 60)) * 100}%; width: {((clip.endTime - clip.startTime) / (waveformRef?.getDuration?.() || 60)) * 100}%;"
           >
             <span class="clip-name">{clip.name}</span>
           </div>
@@ -225,10 +329,10 @@
       </div>
       <div class="timeline-ruler">
         <div class="time-marker" style="left: 0%;">0:00</div>
-        <div class="time-marker" style="left: 25%;">{formatTime((audioState.totalDuration || 240) * 0.25)}</div>
-        <div class="time-marker" style="left: 50%;">{formatTime((audioState.totalDuration || 240) * 0.5)}</div>
-        <div class="time-marker" style="left: 75%;">{formatTime((audioState.totalDuration || 240) * 0.75)}</div>
-        <div class="time-marker" style="left: 100%;">{formatTime(audioState.totalDuration || 240)}</div>
+        <div class="time-marker" style="left: 25%;">{formatTime((waveformRef?.getDuration?.() || 240) * 0.25)}</div>
+        <div class="time-marker" style="left: 50%;">{formatTime((waveformRef?.getDuration?.() || 240) * 0.5)}</div>
+        <div class="time-marker" style="left: 75%;">{formatTime((waveformRef?.getDuration?.() || 240) * 0.75)}</div>
+        <div class="time-marker" style="left: 100%;">{formatTime(waveformRef?.getDuration?.() || 240)}</div>
       </div>
     </div>
   </div>
@@ -252,13 +356,55 @@
   </div>
 
 
-  <!-- Master Playback Controls -->
-  <div class="playback-controls-container" style="grid-area: playback;">
-    <PlaybackControls />
-  </div>
-</div>
-
 <style>
+.waveform-playback-controls {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 6px 14px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.waveform-play-btn {
+  background: rgba(77, 182, 172, 0.15);
+  border: 1px solid rgba(77, 182, 172, 0.3);
+  color: #4db6ac;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 12px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+.waveform-play-btn:hover {
+  background: rgba(77, 182, 172, 0.25);
+}
+.waveform-stop-btn {
+  background: rgba(220, 44, 44, 0.18);
+  border: 1px solid rgba(220, 44, 44, 0.25);
+  color: #ff5252;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 12px;
+  border-radius: 3px;
+  margin-left: 6px;
+  transition: all 0.2s ease;
+}
+.waveform-stop-btn:hover {
+  background: rgba(220, 44, 44, 0.28);
+}
+
+.waveform-time-display {
+  font-family: monospace;
+  font-size: 0.97em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
 .main-workspace {
    height: 100%;
    display: grid;
@@ -267,7 +413,7 @@
     "asset-panel waveform control-panel" 
     "asset-panel video-timeline control-panel"
     "playback playback playback";
-   grid-template-columns: 280px 1fr 320px;
+   grid-template-columns: 320px 1fr 320px;
    grid-template-rows: 1fr 120px 180px 60px;
    gap: 2px;
    background: #1a1a1a;
@@ -379,6 +525,7 @@
     overflow: hidden;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    text-align: left;
   }
 
   .asset-panel.collapsed {
@@ -703,12 +850,10 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid #444;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .clip-block:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
   }
 
   .clip-block.selected {

@@ -81,10 +81,11 @@ app.post('/upload/audio', (req: Request, res: Response, next: NextFunction) => {
             return res.status(400).send({ message: err.message }); // This will catch file type errors from fileFilter
         }
 
-        if (!req.file) {
-            return res.status(400).send({ message: 'No audio file uploaded.' });
+        if (!req.file || !req.file.filename) {
+            console.error('File upload error: req.file or filename missing', req.file);
+            return res.status(400).send({ message: 'No audio file uploaded or fileId missing.' });
         }
-
+        console.log('Audio file uploaded:', req.file);
         res.status(200).send({
             message: 'Audio file uploaded successfully',
             fileId: req.file.filename,

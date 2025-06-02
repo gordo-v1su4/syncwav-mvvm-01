@@ -1,15 +1,13 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import multer from 'multer';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const multer = require('multer');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// __dirname is already available in CommonJS
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(helmet());
@@ -22,7 +20,7 @@ app.use(express.json());
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, join(__dirname, '../uploads'));
+    cb(null, path.join(__dirname, '../uploads'));
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -36,6 +34,28 @@ const upload = multer({
     fileSize: 100 * 1024 * 1024, // 100MB limit
   }
 });
+
+// Serve audio files statically from /files (maps to ../uploads/audio)
+app.use('/files', cors(), express.static(path.join(__dirname, '../uploads/audio'), {
+  setHeaders: (res, path, stat) => {
+    // Set appropriate Content-Type based on file extension
+    if (path.endsWith('.mp3')) {
+      res.set('Content-Type', 'audio/mpeg');
+    } else if (path.endsWith('.wav')) {
+      res.set('Content-Type', 'audio/wav');
+    } else if (path.endsWith('.ogg')) {
+      res.set('Content-Type', 'audio/ogg');
+    } else {
+      res.set('Content-Type', 'audio/mpeg'); // Default
+    }
+    // Set CORS headers explicitly
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, HEAD');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Range');
+    // Cache control for better performance
+    res.set('Cache-Control', 'public, max-age=3600');
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -95,10 +115,10 @@ app.post('/upload/video', upload.single('video'), (req, res) => {
 });
 
 // Serve uploaded files
-app.use('/files', express.static(join(__dirname, '../uploads')));
+app.use('/files', express.static(path.join(__dirname, '../uploads')));
 
 // Error handling middleware
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: any, req: any, res: any, next: any) => {
   console.error('Server error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });

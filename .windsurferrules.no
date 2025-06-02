@@ -1,0 +1,36 @@
+# Windsurfer Rules for Artivus Engine (WaveSurfer Integration Stack)
+
+## General Principles
+- Always use WaveSurfer.js for waveform rendering. Do not use custom canvas or WASM waveform code.
+- The waveform component (`WaveformDisplay.svelte`) must accept a `url` prop for the audio file location.
+- Only initialize WaveSurfer when both the `url` and the container DOM node are available.
+- When the `url` changes, destroy the previous WaveSurfer instance and clear the container before creating a new one.
+- Never leave multiple `<style>` tags in Svelte components; merge all styles into a single block.
+
+## Audio Upload & Backend
+- Audio uploads must go to the backend endpoint `/upload/audio` using the correct backend port (default: 3002).
+- The backend must return a valid `fileId` in the upload response.
+- The frontend must construct the waveform URL as `http://localhost:3002/files/<fileId>`.
+- Always handle upload progress and errors in the UI.
+
+## Waveform Display & Playhead
+- The playhead (cursor) must always be visible and styled (e.g., yellow, width 2px).
+- Playback controls (play/pause) and current time/duration display must be present below the waveform.
+- Playback state and playhead position must be kept in sync with WaveSurfer.js events.
+- When a new song is loaded, the old waveform and playhead must be fully cleared.
+
+## SvelteKit & Project Structure
+- Use SvelteKit for the frontend and Node.js/Express for the backend.
+- Keep frontend and backend code cleanly separated in the monorepo.
+- Document all environment variables and configuration in the README.
+
+## Troubleshooting
+- If the waveform does not appear, check the backend upload response for a valid `fileId` and ensure the frontend URL is correct.
+- If the playhead or waveform does not update, ensure WaveSurfer is destroyed and recreated on `url` change.
+- For port issues, always verify the backend is running on the same port as used in the frontend URLs.
+
+## Linting & Style
+- Only a single top-level `<style>` element is allowed per Svelte component.
+- Merge all CSS into one block to avoid Svelte lint errors.
+
+# End of .windsurferrules
