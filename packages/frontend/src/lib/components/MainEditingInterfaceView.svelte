@@ -20,46 +20,38 @@
   let isLoading = false;
   let loadError = '';
 
-
-  // Load audio from backend when component mounts
-  onMount(async () => {
-
-
-
-    
-    // Check if we have master audio info with a backend path
+  async function tryLoadAudio() {
     if (projectState.masterAudioInfo?.backendPath) {
       try {
-        console.log("Starting audio load from URL:", projectState.masterAudioInfo.backendPath);
+        console.log("[EditScreen] Loading audio from URL:", projectState.masterAudioInfo.backendPath);
         isLoading = true;
         loadError = '';
-        
-        // Add a small delay to ensure the UI updates
         await new Promise(resolve => setTimeout(resolve, 100));
-        
         const buffer = await loadAudioFromUrl(projectState.masterAudioInfo.backendPath);
-        console.log("Audio loaded successfully:", 
-          `length: ${buffer.length}, ` +
-          `duration: ${buffer.duration}, ` +
-          `channels: ${buffer.numberOfChannels}`
-        );
-        
-        // Log the updated audio state
-
-        
+        console.log("[EditScreen] Audio loaded:", buffer);
       } catch (error) {
-        console.error("Failed to load audio from backend:", error);
+        console.error("[EditScreen] Failed to load audio from backend:", error);
         loadError = "Failed to load audio waveform. Please try again.";
       } finally {
         isLoading = false;
       }
     } else {
-      console.log("No master audio info or backend path available");
-      console.log("projectState.masterAudioInfo:", projectState.masterAudioInfo);
+      console.log("[EditScreen] No master audio info or backend path available");
+      console.log("[EditScreen] projectState.masterAudioInfo:", projectState.masterAudioInfo);
     }
-    
+  }
 
+  // Load audio from backend when component mounts
+  onMount(async () => {
+    // Initial load (in case state is already set)
+    await tryLoadAudio();
   });
+
+  // --- Reactive: Reload audio whenever backendPath changes ---
+  $: if (projectState.masterAudioInfo?.backendPath) {
+    // Only reload if the path changes
+    tryLoadAudio();
+  }
 
 
 </script>

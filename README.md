@@ -54,6 +54,37 @@ This project uses a monorepo structure with the following packages:
 - **`packages/backend`** - Node.js/Express backend service  
 - **`packages/rust-modules`** - Rust/WebAssembly modules for audio analysis
 
+## ⚠️ Prerequisite: Rust and wasm-pack Required for WASM Builds
+
+This project requires the Rust toolchain and `wasm-pack` to be installed in order to build the Rust WebAssembly modules.
+
+### Install Rust and wasm-pack
+
+#### On Linux/WSL or macOS
+```sh
+# Install Rust
+curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
+
+# Install wasm-pack
+cargo install wasm-pack
+```
+
+#### On Windows
+- **Recommended:** Use [WSL](https://learn.microsoft.com/en-us/windows/wsl/) and follow the Linux instructions above.
+- **Or:** Download and install Rust from [https://rustup.rs](https://rustup.rs) and install wasm-pack using PowerShell:
+```powershell
+cargo install wasm-pack
+```
+
+After installing, verify with:
+```sh
+rustc --version
+wasm-pack --version
+```
+
+If Rust and wasm-pack are not installed, the WASM build will fail and placeholder files will be used instead, disabling Rust-powered features in the frontend.
+
 ## Development
 
 Install dependencies for all packages:
